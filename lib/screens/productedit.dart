@@ -13,9 +13,14 @@ import 'package:toast/toast.dart';
 
 class ProductEdit extends StatefulWidget {
   final int? id;
+
+  /// MongoDB `_id` of the stocklist entry, used by the MYN online-shop API.
+  final String? mongo_id;
   final bool showBackButton;
 
-  ProductEdit({Key? key, this.id, this.showBackButton = false}) : super(key: key);
+  ProductEdit(
+      {Key? key, this.id, this.mongo_id, this.showBackButton = false})
+      : super(key: key);
 
   @override
   _ProductEditState createState() => _ProductEditState();
@@ -34,6 +39,10 @@ class _ProductEditState extends State<ProductEdit> {
   bool _isLoading = true;
   String? _error;
 
+  /// Raw product document from the API. Kept so the variant list can be sent
+  /// back on save with only the edited fields changed.
+  Map<String, dynamic>? _product;
+
   @override
   void initState() {
     super.initState();
@@ -47,18 +56,37 @@ class _ProductEditState extends State<ProductEdit> {
     });
 
     try {
-      var productDetailsResponse = await ProductRepository().getProductDetails(id: widget.id);
-
-      if (productDetailsResponse.detailed_products!.isNotEmpty) {
-        var product = productDetailsResponse.detailed_products![0];
-        setState(() {
-          _nameController.text = product.name!;
-          _mrpController.text = product.stroked_value!;
-          _sellerPriceController.text = product.supplier_price!;
-          _quantityConfirmController.text = product.current_stock.toString();
-          _isActive = product.is_active!;
-        });
+      final productId = widget.mongo_id;
+      if (productId == null || productId.isEmpty) {
+        throw Exception('This product has no MongoDB id');
       }
+
+      final product = await ProductRepository().getMynProduct(productId);
+
+      // Prices live on the first variant ("Plate", "500g", ...); the top-level
+      // appPrice/mrp stay at 0 for these items.
+      final variants = (product["variants"] as List?) ?? const [];
+      final Map<String, dynamic> v0 = variants.isNotEmpty
+          ? Map<String, dynamic>.from(variants.first as Map)
+          : <String, dynamic>{};
+
+      String num2str(dynamic v) {
+        final n = v is num ? v : num.tryParse(v?.toString() ?? "");
+        return n == null ? "" : n.toString();
+      }
+
+      setState(() {
+        _product = product;
+        _nameController.text =
+            (product["productName"] ?? product["foodName"] ?? "").toString();
+        _mrpController.text = num2str(v0["mrp"] ?? v0["compare_at_price"]);
+        _sellerPriceController.text =
+            num2str(v0["appPrice"] ?? v0["base_price"]);
+        _quantityConfirmController.text =
+            num2str(product["stock"] ?? v0["stock"] ?? 0);
+        _isActive =
+            product["status"]?.toString().toLowerCase() != "inactive";
+      });
     } catch (e) {
       setState(() {
         _error = e.toString();

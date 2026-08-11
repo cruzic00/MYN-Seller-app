@@ -252,6 +252,7 @@ class _CategoryProductsState extends State<CategoryProducts> {
               // 3
               return ProductCard(
                   id: _productList[index].id,
+                  mongo_id: _productList[index].mongo_id,
                   image: _productList[index].thumbnail_image,
                   name: _productList[index].name,
                   stroked_price: _productList[index].stroked_price,

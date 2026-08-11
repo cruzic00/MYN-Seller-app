@@ -12,6 +12,10 @@ import '../helpers/shared_value_helper.dart';
 
 class ProductCard extends StatefulWidget {
   final int? id;
+
+  /// MongoDB `_id` of the stocklist entry — the identifier the MYN online-shop
+  /// API uses for product detail and update calls.
+  final String? mongo_id;
   final String? image;
   final String? name;
   final String? stroked_price;
@@ -22,6 +26,7 @@ class ProductCard extends StatefulWidget {
   ProductCard(
       {Key? key,
       this.id,
+      this.mongo_id,
       this.image,
       this.name,
       this.stroked_price,

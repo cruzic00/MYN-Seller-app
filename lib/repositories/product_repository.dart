@@ -239,6 +239,57 @@ class ProductRepository {
     }
   }
 
+  /// Fetches one stocklist item from the MYN online-shop API
+  /// (GET /api/business/business-product/:productId).
+  ///
+  /// Returns the raw product map rather than [ProductDetailsResponse]: this
+  /// API's product shape (productName / variants[] / status) does not line up
+  /// with the legacy Laravel model, and the edit screen needs the untouched
+  /// variant list so it can PATCH it back without dropping fields.
+  Future<Map<String, dynamic>> getMynProduct(String productId) async {
+    final uri = Uri.parse(
+        "${AppConfig.MYN_BASE_URL}/business/business-product/$productId");
+
+    final response = await http.get(uri, headers: {
+      "Authorization": "Bearer ${access_token.$}",
+    });
+
+    log("Request URL: $uri");
+    log("Response Status: ${response.statusCode}");
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Failed to load product details (${response.statusCode})');
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = body["data"];
+    if (data is Map<String, dynamic> && data["product"] is Map) {
+      return Map<String, dynamic>.from(data["product"] as Map);
+    }
+    throw Exception('Unexpected product payload');
+  }
+
+  /// Applies a partial update to a stocklist item
+  /// (PATCH /api/business/business-stocklist/:uid/:productId).
+  Future<bool> updateMynProduct(
+      String productId, Map<String, dynamic> updates) async {
+    final uri = Uri.parse(
+        "${AppConfig.MYN_BASE_URL}/business/business-stocklist/${Uri.encodeComponent(sellerIdentifier())}/$productId");
+
+    final response = await http.patch(
+      uri,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${access_token.$}",
+      },
+      body: jsonEncode(updates),
+    );
+
+    log("PATCH $uri -> ${response.statusCode}");
+    return response.statusCode == 200;
+  }
+
   Future<ProductDetailsResponse> getProductDetails({int? id = 0}) async {
     Uri url = Uri.parse("${AppConfig.BASE_URL}/products/${id}");
 
