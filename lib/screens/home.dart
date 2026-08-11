@@ -4,10 +4,12 @@ import 'package:myn_seller_app/data_model/myn_order_response.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/myn_palette.dart';
+import 'package:myn_seller_app/repositories/auth_repository.dart';
 import 'package:myn_seller_app/repositories/order_repository.dart';
 import 'package:myn_seller_app/screens/login.dart';
 import 'package:myn_seller_app/screens/myn_orders.dart';
 import 'package:myn_seller_app/ui_elements/notification_card.dart';
+import 'package:myn_seller_app/ui_elements/skeleton.dart';
 import 'package:myn_seller_app/ui_sections/drawer.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -77,14 +79,26 @@ class _HomeState extends State<Home> {
     _onPageRefresh();
   }
 
-  /// seller_username often holds an email; showing the raw address as a
-  /// greeting reads badly, so keep only the local part.
-  String displayName() {
-    final String raw = (seller_username.$ ?? user_name.$ ?? "").trim();
+  /// `user_name` is populated from the login payload's `businessName`
+  /// (see login_response.dart), which is the shop's trading name — the same
+  /// label the web Business Panel shows. Falls back to the username's local
+  /// part when a seller has no business name set.
+  String shopName() {
+    final String business = (user_name.$ ?? "").trim();
+    if (business.isNotEmpty) return business;
+
+    final String raw = (seller_username.$ ?? "").trim();
     if (raw.isEmpty) return "";
     final String name = raw.contains("@") ? raw.split("@").first : raw;
     if (name.isEmpty) return "";
     return name[0].toUpperCase() + name.substring(1);
+  }
+
+  Future<void> toggleShopStatus(bool value) async {
+    setState(() => shop_active.$ = value);
+    final result = await AuthRepository().changeStatusResponse(shop_active.$);
+    if (!mounted) return;
+    setState(() => shop_active.$ = result);
   }
 
   int _countWhere(bool Function(String status) test) {
@@ -93,13 +107,11 @@ class _HomeState extends State<Home> {
   }
 
   String _count(bool Function(String status) test) {
-    if (_loading) return ". . .";
     if (_failed || _summary == null) return "—";
     return _countWhere(test).toString();
   }
 
   String _money(double? v) {
-    if (_loading) return ". . .";
     if (_failed || v == null) return "—";
     return MynPalette.money(v);
   }
@@ -190,7 +202,7 @@ class _HomeState extends State<Home> {
   }
 
   Widget buildHeroHeader(BuildContext context) {
-    final String name = displayName();
+    final String name = shopName();
 
     return Container(
       decoration: BoxDecoration(
@@ -205,16 +217,54 @@ class _HomeState extends State<Home> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            name.isEmpty ? "Welcome back" : "Hello, $name",
-            style: TextStyle(
-                color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            "Here's how your store is doing",
-            style: TextStyle(
-                color: Color.fromRGBO(255, 255, 255, 0.78), fontSize: 13),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 44,
+                width: 44,
+                decoration: BoxDecoration(
+                  color: Color.fromRGBO(255, 255, 255, 0.18),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: Color.fromRGBO(255, 255, 255, 0.28), width: 1),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Hello,",
+                      style: TextStyle(
+                          color: Color.fromRGBO(255, 255, 255, 0.75),
+                          fontSize: 13),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      name.isEmpty ? "Welcome back" : name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              buildShopStatusToggle(),
+            ],
           ),
           const SizedBox(height: 18),
           Row(
@@ -239,6 +289,45 @@ class _HomeState extends State<Home> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Shop open/closed lives here rather than buried in the drawer, so the
+  /// seller can see and flip it without leaving the dashboard.
+  Widget buildShopStatusToggle() {
+    final bool open = shop_active.$;
+
+    return Material(
+      color: Color.fromRGBO(255, 255, 255, open ? 0.18 : 0.10),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => toggleShopStatus(!open),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 7, 12, 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 8,
+                width: 8,
+                decoration: BoxDecoration(
+                  color: open ? Color(0xFF7BE495) : Color(0xFFFFB4A2),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                open ? "Open" : "Closed",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -279,17 +368,22 @@ class _HomeState extends State<Home> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700),
-                  ),
-                ),
+                _loading
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4),
+                        child: Skeleton.onDark(width: 108, height: 22),
+                      )
+                    : FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ),
               ],
             ),
           ),
@@ -412,16 +506,21 @@ class _HomeState extends State<Home> {
                   child: Icon(icon, color: color, size: 22),
                 ),
                 const SizedBox(height: 10),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                        color: MynPalette.heading,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700),
-                  ),
-                ),
+                _loading
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 5),
+                        child: Skeleton(width: 34, height: 20),
+                      )
+                    : FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                              color: MynPalette.heading,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ),
                 const SizedBox(height: 2),
                 Text(
                   label,
@@ -509,13 +608,15 @@ class _HomeState extends State<Home> {
                   fontWeight: FontWeight.w600),
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-                color: MynPalette.heading,
-                fontSize: 14,
-                fontWeight: FontWeight.w700),
-          ),
+          _loading
+              ? const Skeleton(width: 68, height: 14)
+              : Text(
+                  value,
+                  style: TextStyle(
+                      color: MynPalette.heading,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700),
+                ),
         ],
       ),
     );
