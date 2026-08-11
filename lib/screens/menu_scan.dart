@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/myn_palette.dart';
+import 'package:myn_seller_app/repositories/business_category_repository.dart';
 import 'package:myn_seller_app/repositories/menu_scan_repository.dart';
 
 /// Photograph a menu, review what was read off it, then save the approved rows
@@ -23,12 +25,44 @@ enum _Stage { pick, scanning, review, saving }
 class _MenuScanScreenState extends State<MenuScanScreen> {
   final ImagePicker _picker = ImagePicker();
 
+  /// Roughly what one generated image costs at the configured size. Shown on
+  /// the button because a 40-item menu is a real amount of money, unlike the
+  /// scan itself which is a rupee or two.
+  static const double _rupeesPerImage = 6;
+
+  static const List<String> _statuses = ["Active", "Inactive"];
+
   _Stage _stage = _Stage.pick;
   String? _error;
   String _notes = "";
   File? _photo;
   List<ScannedMenuItem> _items = [];
   int _savedCount = 0;
+
+  List<ShopCategory> _categories = [];
+  bool _loadingCategories = false;
+
+  final Set<int> _expanded = {};
+  final Set<int> _generating = {};
+  bool _bulkGenerating = false;
+
+  /// Decoded once per generated image. Decoding the base64 inside build() would
+  /// redo the work for every card on every keystroke.
+  final Map<int, Uint8List> _thumbs = {};
+
+  ShopCategory? _categoryFor(ScannedMenuItem item) {
+    for (final c in _categories) {
+      if (c.name == item.category) return c;
+    }
+    return null;
+  }
+
+  ShopSubcategory? _subcategoryFor(ScannedMenuItem item) {
+    for (final s in _categoryFor(item)?.subcategories ?? const <ShopSubcategory>[]) {
+      if (s.name == item.subCategory) return s;
+    }
+    return null;
+  }
 
   Future<void> _capture(ImageSource source) async {
     try {
@@ -58,13 +92,39 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
         _items = result.items;
         _notes = result.notes;
         _stage = _Stage.review;
+        _expanded.clear();
       });
+
+      await _loadCategories();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e.toString();
         _stage = _Stage.pick;
       });
+    }
+  }
+
+  /// Pulls the seller's own categories and points each scanned row at the
+  /// closest one. A row that matches nothing is left unset for the seller to
+  /// choose, rather than guessing and being silently wrong.
+  Future<void> _loadCategories() async {
+    setState(() => _loadingCategories = true);
+    try {
+      final cats = await BusinessCategoryRepository().getCategories();
+      if (!mounted) return;
+      setState(() {
+        _categories = cats;
+        for (final item in _items) {
+          final match = matchShopCategory(cats, item.category);
+          if (match != null) item.applyCategory(match);
+        }
+      });
+    } catch (_) {
+      // A failed category fetch must not block the review — the dropdown just
+      // comes up empty and the seller can still fix things on the panel.
+    } finally {
+      if (mounted) setState(() => _loadingCategories = false);
     }
   }
 
@@ -75,16 +135,105 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     return "image/jpeg";
   }
 
+  Future<void> _generateImage(int index) async {
+    final item = _items[index];
+    if (item.name.trim().isEmpty) {
+      _toast("Give the item a name first.");
+      return;
+    }
+
+    setState(() => _generating.add(index));
+    try {
+      final url = await MenuScanRepository().generateImage(item);
+      if (!mounted) return;
+      setState(() => item.imageDataUrl = url);
+    } catch (e) {
+      if (mounted) _toast(_clean(e));
+    } finally {
+      if (mounted) setState(() => _generating.remove(index));
+    }
+  }
+
+  /// Generates for every selected row that has no image yet, one at a time so
+  /// progress is visible and a mid-way failure keeps what already succeeded.
+  Future<void> _generateAllImages() async {
+    final targets = <int>[];
+    for (int i = 0; i < _items.length; i++) {
+      if (_items[i].selected && !_items[i].hasImage) targets.add(i);
+    }
+    if (targets.isEmpty) return;
+
+    final confirmed = await _confirmBulkGenerate(targets.length);
+    if (confirmed != true) return;
+
+    setState(() => _bulkGenerating = true);
+    int failed = 0;
+    for (final i in targets) {
+      if (!mounted || !_bulkGenerating) break;
+      try {
+        setState(() => _generating.add(i));
+        final url = await MenuScanRepository().generateImage(_items[i]);
+        if (!mounted) return;
+        setState(() => _items[i].imageDataUrl = url);
+      } catch (_) {
+        failed++;
+      } finally {
+        if (mounted) setState(() => _generating.remove(i));
+      }
+    }
+    if (!mounted) return;
+    setState(() => _bulkGenerating = false);
+    if (failed > 0) _toast("$failed image(s) could not be generated.");
+  }
+
+  Future<bool?> _confirmBulkGenerate(int count) {
+    final cost = (count * _rupeesPerImage).round();
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text("Generate $count images?",
+            style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: MynPalette.heading)),
+        content: Text(
+          "These are illustrations created from each dish name, not photos of "
+          "your own cooking. They go to MYN for approval before customers see "
+          "them, and you can replace any of them with a real photo later.\n\n"
+          "Roughly ₹$cost in all.",
+          style: TextStyle(
+              fontSize: 13.5, height: 1.45, color: MynPalette.muted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text("Cancel", style: TextStyle(color: MynPalette.muted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: MyTheme.accent_color,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text("Generate"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _save() async {
     final approved = _items.where((i) => i.selected).toList();
     if (approved.isEmpty) return;
 
     final blocked = approved.where((i) => i.hasZeroPrice || i.name.trim().isEmpty);
     if (blocked.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-            "${blocked.length} selected item(s) still need a name and a price above zero."),
-      ));
+      _toast(
+          "${blocked.length} selected item(s) still need a name and a price above zero.");
       return;
     }
 
@@ -109,13 +258,19 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     }
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(failed == 0
-          ? "Added $_savedCount item(s) to your stock"
-          : "Added $_savedCount, failed $failed"),
-    ));
+    _toast(failed == 0
+        ? "Added $_savedCount item(s) to your stock"
+        : "Added $_savedCount, failed $failed");
     Navigator.pop(context, _savedCount > 0);
   }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _clean(Object e) =>
+      e.toString().replaceFirst("Exception: ", "");
 
   @override
   Widget build(BuildContext context) {
@@ -133,8 +288,7 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
         iconTheme: IconThemeData(color: Colors.white),
       ),
       body: _buildBody(),
-      bottomNavigationBar:
-          _stage == _Stage.review ? _buildSaveBar() : null,
+      bottomNavigationBar: _stage == _Stage.review ? _buildSaveBar() : null,
     );
   }
 
@@ -177,8 +331,8 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
         Text(
           "Every dish and price that can be read will be listed for you to check before anything is added to your stock.",
           textAlign: TextAlign.center,
-          style: TextStyle(
-              color: MynPalette.muted, fontSize: 13.5, height: 1.45),
+          style:
+              TextStyle(color: MynPalette.muted, fontSize: 13.5, height: 1.45),
         ),
         const SizedBox(height: 24),
         _tip("Lay the menu flat and fill the frame"),
@@ -200,7 +354,7 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
                     color: MynPalette.red, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(_error!,
+                  child: Text(_clean(_error!),
                       style: TextStyle(
                           color: MynPalette.heading,
                           fontSize: 12.5,
@@ -222,8 +376,8 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
               backgroundColor: MyTheme.accent_color,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
           ),
         ),
@@ -239,8 +393,8 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
               foregroundColor: MyTheme.accent_color,
               padding: const EdgeInsets.symmetric(vertical: 15),
               side: BorderSide(color: MyTheme.accent_color, width: 1.4),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
           ),
         ),
@@ -273,8 +427,8 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
           if (_photo != null)
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.file(_photo!,
-                  width: 190, height: 190, fit: BoxFit.cover),
+              child:
+                  Image.file(_photo!, width: 190, height: 190, fit: BoxFit.cover),
             ),
           const SizedBox(height: 26),
           CircularProgressIndicator(color: MyTheme.accent_color),
@@ -351,6 +505,9 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
       );
     }
 
+    final missingImages =
+        _items.where((i) => i.selected && !i.hasImage).length;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
@@ -364,8 +521,7 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.fact_check_outlined,
-                  color: MynPalette.amber, size: 20),
+              Icon(Icons.fact_check_outlined, color: MynPalette.amber, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -385,7 +541,9 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
                   fontSize: 12,
                   fontStyle: FontStyle.italic)),
         ],
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
+        if (missingImages > 0) _buildGenerateAllCard(missingImages),
+        const SizedBox(height: 4),
         Row(
           children: [
             Text(
@@ -419,8 +577,67 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     );
   }
 
+  Widget _buildGenerateAllCard(int count) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: MynPalette.blueTint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Color.fromRGBO(58, 122, 168, 0.24)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.auto_awesome_rounded, size: 20, color: MynPalette.blue),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("$count item(s) have no picture",
+                    style: TextStyle(
+                        color: MynPalette.heading,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(
+                    "Create illustrations from the dish names · about ₹${(count * _rupeesPerImage).round()}",
+                    style:
+                        TextStyle(color: MynPalette.muted, fontSize: 11.5)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          _bulkGenerating
+              ? TextButton(
+                  onPressed: () => setState(() => _bulkGenerating = false),
+                  child: Text("Stop",
+                      style: TextStyle(
+                          color: MynPalette.red,
+                          fontWeight: FontWeight.w700)),
+                )
+              : ElevatedButton(
+                  onPressed: _generateAllImages,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: MyTheme.accent_color,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text("Generate",
+                      style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w700)),
+                ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildItemCard(ScannedMenuItem item, int index) {
     final bool needsAttention = item.hasZeroPrice || item.confidence == "low";
+    final bool open = _expanded.contains(index);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -439,18 +656,25 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
                 offset: Offset(0, 6)),
           ],
         ),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Checkbox(
-                  value: item.selected,
-                  activeColor: MyTheme.accent_color,
-                  onChanged: (v) =>
-                      setState(() => item.selected = v ?? false),
+                SizedBox(
+                  width: 34,
+                  child: Checkbox(
+                    value: item.selected,
+                    activeColor: MyTheme.accent_color,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    onChanged: (v) =>
+                        setState(() => item.selected = v ?? false),
+                  ),
                 ),
+                _buildThumb(item, index),
+                const SizedBox(width: 10),
                 Expanded(
                   child: TextFormField(
                     initialValue: item.name,
@@ -467,39 +691,155 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
                   ),
                 ),
                 if (needsAttention)
-                  Icon(Icons.error_outline_rounded,
-                      size: 18, color: MynPalette.amber),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(Icons.error_outline_rounded,
+                        size: 18, color: MynPalette.amber),
+                  ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                      open
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      color: MynPalette.muted),
+                  onPressed: () => setState(() {
+                    open ? _expanded.remove(index) : _expanded.add(index);
+                  }),
+                ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(left: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 8),
+            _buildCategoryDropdown(item, index),
+            const SizedBox(height: 8),
+            for (final v in item.variants) _buildVariantRow(item, v),
+            if (open) ...[
+              const Divider(height: 22),
+              _buildSubcategoryDropdown(item, index),
+              const SizedBox(height: 8),
+              Row(
                 children: [
-                  if (item.category.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: MynPalette.surface,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(item.category,
-                            style: TextStyle(
-                                color: MynPalette.muted,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600)),
-                      ),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: item.brand,
+                      onChanged: (v) => item.brand = v,
+                      style: TextStyle(
+                          color: MynPalette.heading, fontSize: 13),
+                      decoration: _fieldDecoration("Brand"),
                     ),
-                  for (final v in item.variants) _buildVariantRow(item, v),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: _buildStatusDropdown(item)),
                 ],
               ),
-            ),
+              const SizedBox(height: 8),
+              TextFormField(
+                initialValue: item.description,
+                onChanged: (v) => item.description = v,
+                maxLines: 2,
+                style: TextStyle(color: MynPalette.heading, fontSize: 13),
+                decoration: _fieldDecoration("Description"),
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildThumb(ScannedMenuItem item, int index) {
+    final busy = _generating.contains(index);
+
+    return GestureDetector(
+      onTap: busy ? null : () => _generateImage(index),
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: MynPalette.surface,
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(color: MynPalette.cardBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: busy
+            ? Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: MyTheme.accent_color),
+                ),
+              )
+            : item.hasImage
+                ? Image.memory(
+                    base64Decode(item.imageDataUrl!.split(",").last),
+                    fit: BoxFit.cover,
+                  )
+                : Icon(Icons.auto_awesome_outlined,
+                    size: 19, color: MynPalette.muted),
+      ),
+    );
+  }
+
+  Widget _buildCategoryDropdown(ScannedMenuItem item, int index) {
+    return DropdownButtonFormField<ShopCategory>(
+      // A dropdown built from `initialValue` keeps its own state, so without a
+      // key that moves with the selection it would still show empty after the
+      // category list arrives and auto-matched every row.
+      key: ValueKey("cat-$index-${item.categoryId}-${_categories.length}"),
+      initialValue: _categoryFor(item),
+      isExpanded: true,
+      icon: Icon(Icons.expand_more_rounded, color: MynPalette.muted, size: 20),
+      style: TextStyle(color: MynPalette.heading, fontSize: 13),
+      decoration: _fieldDecoration(_loadingCategories
+          ? "Loading your categories…"
+          // Keep the unmatched heading visible so the seller can see what the
+          // menu actually said while they pick the shop's own name for it.
+          : item.category.isEmpty
+              ? "Category"
+              : "Category — menu said “${item.category}”"),
+      items: [
+        for (final c in _categories)
+          DropdownMenuItem(value: c, child: Text(c.name)),
+      ],
+      onChanged: (c) => setState(() => item.applyCategory(c)),
+    );
+  }
+
+  Widget _buildSubcategoryDropdown(ScannedMenuItem item, int index) {
+    final subs =
+        _categoryFor(item)?.subcategories ?? const <ShopSubcategory>[];
+
+    return DropdownButtonFormField<ShopSubcategory>(
+      // Keyed on the parent category: changing it empties the subcategory, and
+      // a stale value left behind would assert against the new item list.
+      key: ValueKey("sub-$index-${item.categoryId}-${item.subcategoryId}"),
+      initialValue: _subcategoryFor(item),
+      isExpanded: true,
+      icon: Icon(Icons.expand_more_rounded, color: MynPalette.muted, size: 20),
+      style: TextStyle(color: MynPalette.heading, fontSize: 13),
+      decoration: _fieldDecoration(subs.isEmpty
+          ? "No subcategories in this category"
+          : "Sub category"),
+      items: [
+        for (final s in subs) DropdownMenuItem(value: s, child: Text(s.name)),
+      ],
+      onChanged:
+          subs.isEmpty ? null : (s) => setState(() => item.applySubcategory(s)),
+    );
+  }
+
+  Widget _buildStatusDropdown(ScannedMenuItem item) {
+    return DropdownButtonFormField<String>(
+      initialValue: _statuses.contains(item.status) ? item.status : "Active",
+      isExpanded: true,
+      icon: Icon(Icons.expand_more_rounded, color: MynPalette.muted, size: 20),
+      style: TextStyle(color: MynPalette.heading, fontSize: 13),
+      decoration: _fieldDecoration("Status"),
+      items: [
+        for (final s in _statuses) DropdownMenuItem(value: s, child: Text(s)),
+      ],
+      onChanged: (s) => setState(() => item.status = s ?? "Active"),
     );
   }
 
@@ -528,9 +868,8 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
               onChanged: (v) => setState(
                   () => variant.price = double.tryParse(v.trim()) ?? 0),
               style: TextStyle(
-                  color: variant.price <= 0
-                      ? MynPalette.red
-                      : MynPalette.heading,
+                  color:
+                      variant.price <= 0 ? MynPalette.red : MynPalette.heading,
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700),
               decoration: _fieldDecoration("Price ₹"),
@@ -545,8 +884,8 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     return InputDecoration(
       isDense: true,
       hintText: hint,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      hintStyle: TextStyle(color: MynPalette.muted, fontSize: 12.5),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       filled: true,
       fillColor: MynPalette.surface,
       border: OutlineInputBorder(
@@ -603,8 +942,7 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
               ),
               child: Text(
                 count == 0 ? "Nothing selected" : "Add $count to stock",
-                style:
-                    TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               ),
             ),
           ),
