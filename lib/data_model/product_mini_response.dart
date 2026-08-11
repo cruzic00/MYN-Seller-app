@@ -4,6 +4,8 @@
 //https://app.quicktype.io/
 import 'dart:convert';
 
+import 'package:myn_seller_app/app_config.dart';
+
 ProductMiniResponse productMiniResponseFromJson(String str) =>
     ProductMiniResponse.fromJson(json.decode(str));
 
@@ -61,6 +63,7 @@ class ProductMiniResponse {
 class Product {
   Product({
     this.id,
+    this.mongo_id,
     this.name,
     this.thumbnail_image,
     this.main_price,
@@ -74,6 +77,9 @@ class Product {
   });
 
   int? id;
+
+  /// MongoDB `_id` of the stocklist entry. Null for legacy Laravel payloads.
+  String? mongo_id;
   String? name;
   String? thumbnail_image;
   String? main_price;
@@ -85,22 +91,70 @@ class Product {
   Links? links;
   bool? is_active;
 
-  factory Product.fromJson(Map<String, dynamic> json) => Product(
-        id: json["id"],
-        name: json["name"],
-        thumbnail_image: json["thumbnail_image"],
-        main_price: json["main_price"],
-        stroked_price: json["stroked_price"],
-        seller_price: json["seller_price"],
-        has_discount: json["has_discount"],
-        rating: json["rating"].toInt(),
-        sales: json["sales"],
-        is_active: json["is_active"],
-        links: Links.fromJson(json["links"]),
+  factory Product.fromJson(Map<String, dynamic> json) {
+    // MYN online-shop stocklist item (MongoDB): productName / appPrice / mrp /
+    // imageUrl / status, keyed by a String _id.
+    if (json.containsKey("productName") || json.containsKey("appPrice")) {
+      final appPrice = _toDouble(json["appPrice"]);
+      final mrp = _toDouble(json["mrp"]);
+      final status = json["status"];
+
+      return Product(
+        id: null,
+        mongo_id: json["_id"]?.toString(),
+        name: json["productName"] ?? json["foodName"] ?? "",
+        thumbnail_image: _absoluteImageUrl(json["imageUrl"]),
+        main_price: _formatPrice(appPrice),
+        stroked_price: _formatPrice(mrp),
+        seller_price: _formatPrice(appPrice),
+        has_discount: mrp > appPrice,
+        rating: 0,
+        sales: 0,
+        // status is a string like "active"/"inactive" on this API.
+        is_active: status is bool
+            ? status
+            : status?.toString().toLowerCase() != "inactive",
+        links: null,
       );
+    }
+
+    return Product(
+      id: json["id"],
+      name: json["name"],
+      thumbnail_image: json["thumbnail_image"],
+      main_price: json["main_price"],
+      stroked_price: json["stroked_price"],
+      seller_price: json["seller_price"],
+      has_discount: json["has_discount"],
+      rating: json["rating"]?.toInt(),
+      sales: json["sales"],
+      is_active: json["is_active"],
+      links: json["links"] == null ? null : Links.fromJson(json["links"]),
+    );
+  }
+
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0;
+  }
+
+  static String _formatPrice(double v) => "₹${v.toStringAsFixed(2)}";
+
+  /// The API returns image paths relative to the site root
+  /// (`/api/images/...`, `/api/proxy-image?url=...`), which Flutter cannot load
+  /// directly — prefix them with the site origin.
+  static String _absoluteImageUrl(dynamic raw) {
+    final url = raw?.toString() ?? "";
+    if (url.isEmpty) return "";
+    if (url.startsWith("http")) return url;
+    if (url.startsWith("/")) return "${AppConfig.RAW_BASE_URL}$url";
+    return url;
+  }
 
   Map<String, dynamic> toJson() => {
         "id": id,
+        "_id": mongo_id,
         "name": name,
         "thumbnail_image": thumbnail_image,
         "main_price": main_price,
@@ -110,7 +164,7 @@ class Product {
         "rating": rating,
         "sales": sales,
         "is_active": is_active,
-        "links": links!.toJson(),
+        "links": links?.toJson(),
       };
 }
 
