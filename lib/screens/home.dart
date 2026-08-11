@@ -47,6 +47,7 @@ class _HomeState extends State<Home> {
   String _on_the_way = ". . .";
   String _picked = ". . .";
   String _assigned = ". . .";
+  bool _summary_failed = false;
 
   @override
   void initState() {
@@ -67,19 +68,47 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> fetchSummary() async {
-    var dashboardSummaryResponse =
-        await DashboardRepository().getDashboardSummaryResponse();
+    try {
+      var dashboardSummaryResponse =
+          await DashboardRepository().getDashboardSummaryResponse();
 
-    _completed_delivery =
-        dashboardSummaryResponse.completed_delivery.toString();
-    _pending_delivery = dashboardSummaryResponse.pending_delivery.toString();
-    _total_collection = dashboardSummaryResponse.total_collection;
-    _total_earning = dashboardSummaryResponse.total_earning;
-    _cancelled = dashboardSummaryResponse.cancelled.toString();
-    _on_the_way = dashboardSummaryResponse.on_the_way.toString();
-    _picked = dashboardSummaryResponse.picked.toString();
-    _assigned = dashboardSummaryResponse.assigned.toString();
-    setState(() {});
+      _completed_delivery =
+          dashboardSummaryResponse.completed_delivery.toString();
+      _pending_delivery = dashboardSummaryResponse.pending_delivery.toString();
+      _total_collection = dashboardSummaryResponse.total_collection;
+      _total_earning = dashboardSummaryResponse.total_earning;
+      _cancelled = dashboardSummaryResponse.cancelled.toString();
+      _on_the_way = dashboardSummaryResponse.on_the_way.toString();
+      _picked = dashboardSummaryResponse.picked.toString();
+      _assigned = dashboardSummaryResponse.assigned.toString();
+      _summary_failed = false;
+    } catch (e) {
+      // The summary call throws when the endpoint is unreachable. Without this
+      // the exception escapes and every counter stays on its loading dots
+      // forever, with no way for the user to tell that the load failed.
+      print("Dashboard summary failed: $e");
+      _summary_failed = true;
+      _completed_delivery = "—";
+      _pending_delivery = "—";
+      _total_collection = "—";
+      _total_earning = "—";
+      _cancelled = "—";
+      _on_the_way = "—";
+      _picked = "—";
+      _assigned = "—";
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  // seller_username often holds an email; showing the raw address as a
+  // greeting reads badly, so keep only the local part.
+  String displayName() {
+    final String raw = (seller_username.$ ?? user_name.$ ?? "").trim();
+    if (raw.isEmpty) return "";
+    final String name = raw.contains("@") ? raw.split("@").first : raw;
+    if (name.isEmpty) return "";
+    return name[0].toUpperCase() + name.substring(1);
   }
 
   Future<void> _onPageRefresh() async {
@@ -96,6 +125,7 @@ class _HomeState extends State<Home> {
     _on_the_way = ". . .";
     _picked = ". . .";
     _assigned = ". . .";
+    _summary_failed = false;
 
     setState(() {});
   }
@@ -152,6 +182,7 @@ class _HomeState extends State<Home> {
             SliverList(
               delegate: SliverChildListDelegate([
                 buildHeroHeader(context),
+                if (_summary_failed) buildSummaryError(),
                 buildOrdersSection(context),
                 buildInProgressSection(context),
                 SizedBox(height: 28),
@@ -190,7 +221,7 @@ class _HomeState extends State<Home> {
   // Teal hero that continues the app bar colour, then curves into the light
   // body. Money lives here; counts live in the cards below.
   Widget buildHeroHeader(BuildContext context) {
-    final String name = (seller_username.$ ?? user_name.$ ?? "").trim();
+    final String name = displayName();
 
     return Container(
       decoration: BoxDecoration(
@@ -301,6 +332,31 @@ class _HomeState extends State<Home> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget buildSummaryError() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: _redTint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Color.fromRGBO(220, 90, 68, 0.28)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.cloud_off_rounded, color: _red, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              "Couldn't load your summary. Pull down to retry.",
+              style:
+                  TextStyle(color: _headingColor, fontSize: 13, height: 1.35),
+            ),
+          ),
+        ],
       ),
     );
   }
