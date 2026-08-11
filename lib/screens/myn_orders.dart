@@ -5,6 +5,7 @@ import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/myn_palette.dart';
 import 'package:myn_seller_app/repositories/order_repository.dart';
 import 'package:myn_seller_app/screens/myn_order_detail.dart';
+import 'package:myn_seller_app/ui_elements/skeleton.dart';
 
 class _Period {
   final String label;
@@ -104,14 +105,24 @@ class _MynOrdersState extends State<MynOrders> {
           physics: AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(child: _buildPeriodBar()),
-            if (_data != null) SliverToBoxAdapter(child: _buildTotals(_data!)),
-            if (_loading)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: CircularProgressIndicator(color: MyTheme.accent_color),
+            if (_loading) ...[
+              SliverToBoxAdapter(child: _buildTotalsSkeleton()),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                  child: const Skeleton(width: 84, height: 16),
                 ),
-              )
+              ),
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) => const OrderCardSkeleton(),
+                  childCount: 4,
+                ),
+              ),
+            ] else if (_data != null)
+              SliverToBoxAdapter(child: _buildTotals(_data!)),
+            if (_loading)
+              SliverToBoxAdapter(child: SizedBox(height: 90))
             else if (_error != null)
               SliverFillRemaining(
                 hasScrollBody: false,
