@@ -11,8 +11,8 @@ import 'package:myn_seller_app/screens/collection.dart';
 import 'package:myn_seller_app/screens/download_report.dart';
 import 'package:myn_seller_app/screens/login.dart';
 import 'package:myn_seller_app/screens/myn_orders.dart';
+import 'package:myn_seller_app/screens/myn_profile.dart';
 import 'package:myn_seller_app/screens/productlist.dart';
-import 'package:myn_seller_app/screens/profile_edit.dart';
 import 'package:toast/toast.dart';
 
 class _DrawerEntry {
@@ -140,8 +140,7 @@ class _MainDrawerState extends State<MainDrawer> {
                     color: MynPalette.muted,
                     tint: Color(0xFFEDF2F3),
                   ),
-                  onTap: () => _navigateTo(
-                      context, ProfileEdit(show_back_button: true)),
+                  onTap: () => _navigateTo(context, MynProfileScreen()),
                 ),
                 buildTile(
                   context,
