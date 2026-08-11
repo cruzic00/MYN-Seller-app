@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:myn_seller_app/app_config.dart';
@@ -64,6 +65,47 @@ class _ProductCardState extends State<ProductCard> {
     });
   }
 
+  /// `thumbnail_image` arrives already absolute for MYN stocklist items
+  /// (`https://safesmilez.com/api/images/...`) but as a bare S3 key for legacy
+  /// Laravel products. Prefixing the bucket unconditionally produced
+  /// `https://<bucket>/https://safesmilez.com/...`, so every card rendered a
+  /// blank tile.
+  String imageUrl() {
+    final String raw = widget.image ?? "";
+    if (raw.isEmpty) return "";
+    if (raw.startsWith("http")) return raw;
+    if (raw.startsWith("/")) return "${AppConfig.RAW_BASE_URL}$raw";
+    return AppConfig.BASE_IMAGE_PATH + raw;
+  }
+
+  Widget buildFallbackIcon() {
+    return Center(
+      child: Icon(Icons.image_not_supported_outlined,
+          color: MyTheme.medium_grey, size: 38),
+    );
+  }
+
+  Widget buildThumbnail() {
+    final String url = imageUrl();
+    if (url.isEmpty) return buildFallbackIcon();
+
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: 400,
+      placeholder: (context, _) => Center(
+        child: SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(
+              strokeWidth: 2, color: MyTheme.accent_color),
+        ),
+      ),
+      errorWidget: (context, _, __) => buildFallbackIcon(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -87,14 +129,8 @@ class _ProductCardState extends State<ProductCard> {
                 Container(
                   width: double.infinity,
                   height: 400,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: NetworkImage(
-                        AppConfig.BASE_IMAGE_PATH + widget.image!,
-                      ),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  color: MyTheme.light_grey,
+                  child: buildThumbnail(),
                 ),
                 Container(
                   width: double.infinity,
