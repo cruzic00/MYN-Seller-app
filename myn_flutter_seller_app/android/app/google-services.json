@@ -1,0 +1,226 @@
+{
+  "project_info": {
+    "project_number": "865321195733",
+    "project_id": "meettheneeds",
+    "storage_bucket": "meettheneeds.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:865321195733:android:edc302035af8d155456a5c",
+        "android_client_info": {
+          "package_name": "com.meettheneeds"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "865321195733-hp2u06feaincbm9v8e6g34rnbe80o05p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.meettheneeds",
+            "certificate_hash": "e8fffda6fcf6cca2a846b8fe217a05c670d8c570"
+          }
+        },
+        {
+          "client_id": "865321195733-jvgflo265e96qhgu33ifr35j21ohca0i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.meettheneeds",
+            "certificate_hash": "d3232c41f70ad348a282349b76735cd07872ae6e"
+          }
+        },
+        {
+          "client_id": "865321195733-ljcb5fumogbrf938jgcfhp6c6ag3ml0v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.meettheneeds",
+            "certificate_hash": "96b1f48d92a313d8f812a5303731c44d97d58934"
+          }
+        },
+        {
+          "client_id": "865321195733-i2pa6k2k810madjem68mklua0sgvtcej.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVJEw7Nsi3GjpF2xUAxhRgviDX_jXWyDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "865321195733-i2pa6k2k810madjem68mklua0sgvtcej.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "865321195733-v6pe52hr5772gcsfiuo6qoou62jn28li.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.meettheneeds"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:865321195733:android:bd7381b1e6b89006456a5c",
+        "android_client_info": {
+          "package_name": "com.meettheneeds.delivery"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "865321195733-kg37eono34j1lpgtgn05ebq3j5uvsmqa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.meettheneeds.delivery",
+            "certificate_hash": "128121c6669ddd76b3d594d87431fd47ef2f4e6c"
+          }
+        },
+        {
+          "client_id": "865321195733-oq7col95kvso9ufc25cpdvbanj6it4o3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.meettheneeds.delivery",
+            "certificate_hash": "96b1f48d92a313d8f812a5303731c44d97d58934"
+          }
+        },
+        {
+          "client_id": "865321195733-i2pa6k2k810madjem68mklua0sgvtcej.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVJEw7Nsi3GjpF2xUAxhRgviDX_jXWyDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "865321195733-i2pa6k2k810madjem68mklua0sgvtcej.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "865321195733-v6pe52hr5772gcsfiuo6qoou62jn28li.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.meettheneeds"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:865321195733:android:218f2b3befa156f2456a5c",
+        "android_client_info": {
+          "package_name": "com.meettheneeds.sales"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "865321195733-gor19h0vtdej63l0t35r534rrvk32bd8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.meettheneeds.sales",
+            "certificate_hash": "96b1f48d92a313d8f812a5303731c44d97d58934"
+          }
+        },
+        {
+          "client_id": "865321195733-kk5tfkp6o13pl5jpp3b2iqq4019s7goi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.meettheneeds.sales",
+            "certificate_hash": "128121c6669ddd76b3d594d87431fd47ef2f4e6c"
+          }
+        },
+        {
+          "client_id": "865321195733-i2pa6k2k810madjem68mklua0sgvtcej.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVJEw7Nsi3GjpF2xUAxhRgviDX_jXWyDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "865321195733-i2pa6k2k810madjem68mklua0sgvtcej.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "865321195733-v6pe52hr5772gcsfiuo6qoou62jn28li.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.meettheneeds"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:865321195733:android:ef25c100d1fcdf03456a5c",
+        "android_client_info": {
+          "package_name": "com.meettheneeds.seller"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "865321195733-6hfp9qa2uvuka5t8p40jadousror02ms.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.meettheneeds.seller",
+            "certificate_hash": "128121c6669ddd76b3d594d87431fd47ef2f4e6c"
+          }
+        },
+        {
+          "client_id": "865321195733-q4l462pifm24163eefb4o19ckrnmsel7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.meettheneeds.seller",
+            "certificate_hash": "96b1f48d92a313d8f812a5303731c44d97d58934"
+          }
+        },
+        {
+          "client_id": "865321195733-i2pa6k2k810madjem68mklua0sgvtcej.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVJEw7Nsi3GjpF2xUAxhRgviDX_jXWyDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "865321195733-i2pa6k2k810madjem68mklua0sgvtcej.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "865321195733-v6pe52hr5772gcsfiuo6qoou62jn28li.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.meettheneeds"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

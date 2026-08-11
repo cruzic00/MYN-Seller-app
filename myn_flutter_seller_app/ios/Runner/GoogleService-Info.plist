@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>865321195733-6hfp9qa2uvuka5t8p40jadousror02ms.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDFVXkIzM52E2DawDsDboyKuErRmPYP0ww</string>
+	<key>GCM_SENDER_ID</key>
+	<string>865321195733</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.meettheneeds.seller</string>
+	<key>PROJECT_ID</key>
+	<string>meettheneeds</string>
+	<key>STORAGE_BUCKET</key>
+	<string>meettheneeds.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:865321195733:ios:5d687eadb58ceb76456a5c</string>
+</dict>
+</plist>
