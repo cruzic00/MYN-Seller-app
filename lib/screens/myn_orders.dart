@@ -239,6 +239,48 @@ class _MynOrdersState extends State<MynOrders> {
     );
   }
 
+  /// Same 2x2 grid as [_buildTotals] with the figures shimmering, so the header
+  /// does not jump when the real numbers arrive.
+  Widget _buildTotalsSkeleton() {
+    Widget tile() => Container(
+          padding: const EdgeInsets.all(14),
+          decoration: MynPalette.card(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Row(
+                children: [
+                  Skeleton(width: 28, height: 28, radius: 14),
+                  SizedBox(width: 8),
+                  Expanded(child: Skeleton(width: 80, height: 12)),
+                ],
+              ),
+              SizedBox(height: 12),
+              Skeleton(width: 96, height: 19),
+            ],
+          ),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        children: [
+          Row(children: [
+            Expanded(child: tile()),
+            const SizedBox(width: 12),
+            Expanded(child: tile()),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: tile()),
+            const SizedBox(width: 12),
+            Expanded(child: tile()),
+          ]),
+        ],
+      ),
+    );
+  }
+
   Widget _totalTile(
       String label, double value, IconData icon, Color color, Color tint) {
     return Container(
