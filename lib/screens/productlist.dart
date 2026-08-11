@@ -8,6 +8,7 @@ import 'package:myn_seller_app/app_localizations.dart';
 import 'package:myn_seller_app/helpers/shimmer_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/repositories/product_repository.dart';
+import 'package:myn_seller_app/screens/menu_scan.dart';
 import 'package:myn_seller_app/screens/productadd.dart';
 import 'package:myn_seller_app/ui_elements/product_card.dart';
 import 'package:myn_seller_app/ui_sections/drawer.dart';
@@ -118,21 +119,49 @@ class _CategoryProductsState extends State<CategoryProducts> {
             drawer: MainDrawer(),
             drawerEdgeDragWidth:
                 widget.show_back_button ? 0 : MediaQuery.of(context).size.width,
-            floatingActionButton: FloatingActionButton.extended(
-              label: Text(
-                'Add',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
+            floatingActionButton: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.extended(
+                  heroTag: 'scan_menu',
+                  label: Text(
+                    'Scan Menu',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  backgroundColor: Colors.white,
+                  foregroundColor: MyTheme.accent_color,
+                  icon: Icon(Icons.document_scanner_outlined, size: 20),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => MenuScanScreen()),
+                    ).then((added) {
+                      // Refresh so newly scanned items appear immediately.
+                      if (added == true) reset();
+                    });
+                  },
                 ),
-              ),
-              backgroundColor: MyTheme.accent_color,
-              icon: Icon(Icons.add, color: Colors.white, size: 20),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ProductAdd()),
-                );
-              },
+                SizedBox(height: 10),
+                FloatingActionButton.extended(
+                  heroTag: 'add_product',
+                  label: Text(
+                    'Add',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  backgroundColor: MyTheme.accent_color,
+                  icon: Icon(Icons.add, color: Colors.white, size: 20),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProductAdd()),
+                    );
+                  },
+                ),
+              ],
             ),
             body: Stack(
               children: [
