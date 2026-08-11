@@ -26,10 +26,14 @@ class _MainState extends State<Main> {
 
   StreamSubscription? _internetConnectionStreamSubscription;
 
-  var _children = [
+  /// Guards against stacking a second sheet when the connection flaps, and
+  /// tells _hideNoInternetBottomSheet whether there is anything to close.
+  bool _noInternetSheetOpen = false;
+
+  final List<Widget> _children = const [
     Home(),
     MynOrders(),
-    CategoryProducts()
+    CategoryProducts(),
   ];
 
   _MainState(this._currentIndex);
