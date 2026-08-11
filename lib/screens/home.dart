@@ -186,7 +186,7 @@ class _HomeState extends State<Home> {
                 buildHeroHeader(context),
                 if (_failed) buildSummaryError(),
                 buildOrdersSection(context),
-                buildDeductionsSection(context),
+                buildNewOrdersSection(context),
                 SizedBox(height: 28),
               ]),
             ),
@@ -223,7 +223,10 @@ class _HomeState extends State<Home> {
   Widget buildHeroHeader(BuildContext context) {
     final String name = shopName();
 
+    final String banner = _profile?.bannerUrl ?? "";
+
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -232,31 +235,42 @@ class _HomeState extends State<Home> {
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 2, 16, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
+          // Shop banner sits behind the gradient scrim so the white text keeps
+          // its contrast whatever the artwork looks like.
+          if (banner.isNotEmpty)
+            Positioned.fill(
+              child: CachedNetworkImage(
+                imageUrl: banner,
+                fit: BoxFit.cover,
+                errorWidget: (c, u, e) => const SizedBox.shrink(),
+              ),
+            ),
+          if (banner.isNotEmpty)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color.fromRGBO(59, 134, 140, 0.92),
+                      Color.fromRGBO(44, 106, 112, 0.96),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 2, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                height: 44,
-                width: 44,
-                decoration: BoxDecoration(
-                  color: Color.fromRGBO(255, 255, 255, 0.18),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: Color.fromRGBO(255, 255, 255, 0.28), width: 1),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700),
-                ),
-              ),
+              buildShopLogo(name),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -307,8 +321,44 @@ class _HomeState extends State<Home> {
               ),
             ],
           ),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  /// Prefers the shop's uploaded logo, falling back to a monogram so the
+  /// header never shows a broken image box.
+  Widget buildShopLogo(String name) {
+    final String logo = _profile?.logoUrl ?? "";
+    final Widget monogram = Text(
+      name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
+      style: TextStyle(
+          color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700),
+    );
+
+    return Container(
+      height: 44,
+      width: 44,
+      decoration: BoxDecoration(
+        color: Color.fromRGBO(255, 255, 255, 0.18),
+        shape: BoxShape.circle,
+        border:
+            Border.all(color: Color.fromRGBO(255, 255, 255, 0.32), width: 1.2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      alignment: Alignment.center,
+      child: logo.isEmpty
+          ? monogram
+          : CachedNetworkImage(
+              imageUrl: logo,
+              fit: BoxFit.cover,
+              width: 44,
+              height: 44,
+              errorWidget: (c, u, e) => monogram,
+            ),
     );
   }
 
@@ -557,87 +607,188 @@ class _HomeState extends State<Home> {
     );
   }
 
-  /// Mirrors the deductions the web Business Panel breaks out between
-  /// "Total Paid" and "Net Earnings".
-  Widget buildDeductionsSection(BuildContext context) {
-    final t = _summary?.totals;
+  /// Orders still awaiting the seller. Marking one packed moves it to
+  /// "Processing" — the next status in the web panel's vocabulary — after
+  /// which it no longer matches [_isOpen] and drops off this list.
+  List<MynOrder> get newOrders {
+    final orders = _summary?.orders ?? const <MynOrder>[];
+    return orders.where((o) => _isOpen(o.status)).toList();
+  }
+
+  Future<void> markPacked(MynOrder order) async {
+    setState(() => _packing.add(order.id));
+    try {
+      final ok = await OrderRepository()
+          .updateMynOrderStatus(order.id, "Processing");
+      if (!mounted) return;
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Couldn't update ${order.orderId}")),
+        );
+      } else {
+        await fetchSummary();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Failed: $e")));
+    } finally {
+      if (mounted) setState(() => _packing.remove(order.id));
+    }
+  }
+
+  Widget buildNewOrdersSection(BuildContext context) {
+    final items = newOrders;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildSectionTitle("Deductions"),
+        buildSectionTitle(
+            _loading ? "New orders" : "New orders (${items.length})"),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            clipBehavior: Clip.antiAlias,
             decoration: MynPalette.card(),
-            child: Column(
-              children: [
-                buildDeductionRow("GST (CGST + SGST)", _money(t?.totalGst),
-                    Icons.receipt_rounded, MynPalette.amber,
-                    MynPalette.amberTint),
-                buildRowDivider(),
-                buildDeductionRow("MYN Commission", _money(t?.commission),
-                    Icons.percent_rounded, MynPalette.red, MynPalette.redTint),
-                buildRowDivider(),
-                buildDeductionRow("Platform Fee", _money(t?.platformFee),
-                    Icons.apps_rounded, MynPalette.blue, MynPalette.blueTint),
-                buildRowDivider(),
-                buildDeductionRow("TDS", _money(t?.tds),
-                    Icons.account_balance_rounded, MynPalette.muted,
-                    MynPalette.surface),
-                buildRowDivider(),
-                buildDeductionRow("Delivery Charge", _money(t?.dc),
-                    Icons.local_shipping_rounded, MynPalette.green,
-                    MynPalette.greenTint),
-              ],
-            ),
+            child: _loading
+                ? Column(
+                    children: List.generate(
+                      3,
+                      (i) => Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 16),
+                        child: Row(
+                          children: const [
+                            Expanded(child: Skeleton(width: 120, height: 14)),
+                            SizedBox(width: 12),
+                            Skeleton(width: 74, height: 30, radius: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                : items.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 28),
+                        child: Column(
+                          children: [
+                            Icon(Icons.inbox_rounded,
+                                size: 34, color: MynPalette.muted),
+                            const SizedBox(height: 8),
+                            Text(
+                              _failed
+                                  ? "Couldn't load new orders"
+                                  : "No new orders right now",
+                              style: TextStyle(
+                                  color: MynPalette.muted, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          for (int i = 0; i < items.length; i++) ...[
+                            if (i > 0) buildRowDivider(),
+                            buildNewOrderRow(items[i]),
+                          ],
+                        ],
+                      ),
           ),
         ),
       ],
     );
   }
 
-  Widget buildRowDivider() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 46),
-      child: Container(height: 1, color: MynPalette.cardBorder),
+  Widget buildNewOrderRow(MynOrder order) {
+    final bool busy = _packing.contains(order.id);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) {
+            return MynOrderDetail(
+                orderMongoId: order.id, orderLabel: order.orderId);
+          })).then(onPop);
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.orderId,
+                      style: TextStyle(
+                          color: MynPalette.heading,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${order.customerName}  ·  ${MynPalette.money(order.customerPaid)}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          TextStyle(color: MynPalette.muted, fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              busy
+                  ? SizedBox(
+                      height: 30,
+                      width: 74,
+                      child: Center(
+                        child: SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: MyTheme.accent_color),
+                        ),
+                      ),
+                    )
+                  : Material(
+                      color: MynPalette.greenTint,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => markPacked(order),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 7),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.inventory_2_rounded,
+                                  size: 14, color: MynPalette.green),
+                              const SizedBox(width: 6),
+                              Text(
+                                "Packed",
+                                style: TextStyle(
+                                    color: MynPalette.green,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget buildDeductionRow(
-      String label, String value, IconData icon, Color color, Color tint) {
+  Widget buildRowDivider() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 13),
-      child: Row(
-        children: [
-          Container(
-            height: 32,
-            width: 32,
-            decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 17),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                  color: MynPalette.heading,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600),
-            ),
-          ),
-          _loading
-              ? const Skeleton(width: 68, height: 14)
-              : Text(
-                  value,
-                  style: TextStyle(
-                      color: MynPalette.heading,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700),
-                ),
-        ],
-      ),
+      padding: const EdgeInsets.only(left: 16),
+      child: Container(height: 1, color: MynPalette.cardBorder),
     );
   }
 
