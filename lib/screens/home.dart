@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:myn_seller_app/data_model/myn_order_response.dart';
+import 'package:myn_seller_app/data_model/myn_profile_response.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
+import 'package:myn_seller_app/repositories/myn_profile_repository.dart';
+import 'package:myn_seller_app/screens/myn_order_detail.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/myn_palette.dart';
 import 'package:myn_seller_app/repositories/auth_repository.dart';
@@ -26,6 +30,8 @@ class _HomeState extends State<Home> {
   bool _loading = true;
   bool _failed = false;
   MynOrderListResponse? _summary;
+  MynProfile? _profile;
+  final Set<String> _packing = {};
 
   @override
   void initState() {
@@ -37,6 +43,19 @@ class _HomeState extends State<Home> {
     }
 
     fetchSummary();
+    fetchProfile();
+  }
+
+  /// Logo and banner are only on the user document, so they need their own
+  /// call; a failure here must not blank the dashboard.
+  Future<void> fetchProfile() async {
+    try {
+      final p = await MynProfileRepository().getMyProfile();
+      if (!mounted) return;
+      setState(() => _profile = p);
+    } catch (e) {
+      print("Profile fetch failed: $e");
+    }
   }
 
   @override
