@@ -221,7 +221,7 @@ class _ProductAddState extends State<ProductAdd> {
               controller: controller,
               autofocus: false,
               maxLines: maxLines,
-              decoration: InputDecorations.buildInputDecoration_1(hintText: hint),
+              decoration: InputDecorations.buildInputDecoration_1(hint_text: hint),
             ),
           ),
         ],

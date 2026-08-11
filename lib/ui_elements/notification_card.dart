@@ -55,10 +55,12 @@ class NotificationService {
       print('User granted permission');
 
       String? token = await _firebaseMessaging.getToken();
-      showNotificationToken.$ = token;
-      print('FCM Token: $token');
-      await _updateFcmToken(token);
-    
+      if (token != null) {
+        showNotificationToken.$ = token;
+        print('FCM Token: $token');
+        await _updateFcmToken(token);
+      }
+
       FirebaseMessaging.instance.onTokenRefresh.listen(_updateFcmToken);
     } else {
       print('User declined or has not accepted permission');

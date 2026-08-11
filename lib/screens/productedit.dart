@@ -210,7 +210,7 @@ class _ProductEditState extends State<ProductEdit> {
             child: TextField(
               controller: controller,
               autofocus: false,
-              decoration: InputDecorations.buildInputDecoration_1(hintText: hint),
+              decoration: InputDecorations.buildInputDecoration_1(hint_text: hint),
             ),
           ),
         ],

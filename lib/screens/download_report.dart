@@ -53,9 +53,11 @@ class _DownloadReportScreenState extends State<DownloadReportScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
-    setState(() {
-      controller.text = _dateFormat.format(picked);
-    });
+    if (picked != null) {
+      setState(() {
+        controller.text = _dateFormat.format(picked);
+      });
+    }
     }
 
   Future<void> _submit() async {
