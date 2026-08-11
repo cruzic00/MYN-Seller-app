@@ -1,33 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:myn_seller_app/data_model/myn_order_response.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
-import 'package:myn_seller_app/repositories/dashboard_repository.dart';
-import 'package:myn_seller_app/screens/cancelled_delivery.dart';
-import 'package:myn_seller_app/screens/collection.dart';
-import 'package:myn_seller_app/screens/completed_delivery.dart';
+import 'package:myn_seller_app/myn_palette.dart';
+import 'package:myn_seller_app/repositories/order_repository.dart';
 import 'package:myn_seller_app/screens/login.dart';
-import 'package:myn_seller_app/screens/main.dart';
-import 'package:myn_seller_app/screens/pending.dart';
+import 'package:myn_seller_app/screens/myn_orders.dart';
 import 'package:myn_seller_app/ui_elements/notification_card.dart';
 import 'package:myn_seller_app/ui_sections/drawer.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-// Dashboard palette. Tonal pairs (foreground + tinted background) instead of
-// saturated fills, so the cards sit under the brand teal without fighting it.
-const Color _surface = Color(0xFFF3F6F7);
-const Color _cardBorder = Color(0xFFE6EDEE);
-const Color _headingColor = Color(0xFF16292B);
-const Color _mutedColor = Color(0xFF7C8D8F);
-
-const Color _green = Color(0xFF2E9E5B);
-const Color _greenTint = Color(0xFFE6F5EC);
-const Color _amber = Color(0xFFD98E22);
-const Color _amberTint = Color(0xFFFBF1E1);
-const Color _red = Color(0xFFDC5A44);
-const Color _redTint = Color(0xFFFBEAE7);
-
-const Color _accentDark = Color(0xFF2C6A70);
 
 class Home extends StatefulWidget {
   @override
@@ -39,15 +21,9 @@ class _HomeState extends State<Home> {
 
   final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
 
-  String _completed_delivery = ". . .";
-  String _pending_delivery = ". . .";
-  String? _total_collection = ". . .";
-  String? _total_earning = ". . .";
-  String _cancelled = ". . .";
-  String _on_the_way = ". . .";
-  String _picked = ". . .";
-  String _assigned = ". . .";
-  bool _summary_failed = false;
+  bool _loading = true;
+  bool _failed = false;
+  MynOrderListResponse? _summary;
 
   @override
   void initState() {
@@ -67,42 +43,42 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
+  /// The dashboard is derived from the same business-orders endpoint the web
+  /// panel uses (GET /api/admin/orders), which already scopes to this seller
+  /// and returns pre-computed `totals`.
   Future<void> fetchSummary() async {
     try {
-      var dashboardSummaryResponse =
-          await DashboardRepository().getDashboardSummaryResponse();
-
-      _completed_delivery =
-          dashboardSummaryResponse.completed_delivery.toString();
-      _pending_delivery = dashboardSummaryResponse.pending_delivery.toString();
-      _total_collection = dashboardSummaryResponse.total_collection;
-      _total_earning = dashboardSummaryResponse.total_earning;
-      _cancelled = dashboardSummaryResponse.cancelled.toString();
-      _on_the_way = dashboardSummaryResponse.on_the_way.toString();
-      _picked = dashboardSummaryResponse.picked.toString();
-      _assigned = dashboardSummaryResponse.assigned.toString();
-      _summary_failed = false;
+      final res = await OrderRepository().getMynOrders();
+      if (!mounted) return;
+      setState(() {
+        _summary = res;
+        _failed = false;
+        _loading = false;
+      });
     } catch (e) {
-      // The summary call throws when the endpoint is unreachable. Without this
-      // the exception escapes and every counter stays on its loading dots
-      // forever, with no way for the user to tell that the load failed.
       print("Dashboard summary failed: $e");
-      _summary_failed = true;
-      _completed_delivery = "—";
-      _pending_delivery = "—";
-      _total_collection = "—";
-      _total_earning = "—";
-      _cancelled = "—";
-      _on_the_way = "—";
-      _picked = "—";
-      _assigned = "—";
+      if (!mounted) return;
+      setState(() {
+        _failed = true;
+        _loading = false;
+      });
     }
-
-    if (mounted) setState(() {});
   }
 
-  // seller_username often holds an email; showing the raw address as a
-  // greeting reads badly, so keep only the local part.
+  Future<void> _onPageRefresh() async {
+    setState(() {
+      _loading = true;
+      _failed = false;
+    });
+    await fetchSummary();
+  }
+
+  onPop(value) {
+    _onPageRefresh();
+  }
+
+  /// seller_username often holds an email; showing the raw address as a
+  /// greeting reads badly, so keep only the local part.
   String displayName() {
     final String raw = (seller_username.$ ?? user_name.$ ?? "").trim();
     if (raw.isEmpty) return "";
@@ -111,28 +87,21 @@ class _HomeState extends State<Home> {
     return name[0].toUpperCase() + name.substring(1);
   }
 
-  Future<void> _onPageRefresh() async {
-    reset();
-    fetchSummary();
+  int _countWhere(bool Function(String status) test) {
+    final orders = _summary?.orders ?? const <MynOrder>[];
+    return orders.where((o) => test(o.status)).length;
   }
 
-  reset() {
-    _completed_delivery = ". . .";
-    _pending_delivery = ". . .";
-    _total_collection = ". . .";
-    _total_earning = ". . .";
-    _cancelled = ". . .";
-    _on_the_way = ". . .";
-    _picked = ". . .";
-    _assigned = ". . .";
-    _summary_failed = false;
-
-    setState(() {});
+  String _count(bool Function(String status) test) {
+    if (_loading) return ". . .";
+    if (_failed || _summary == null) return "—";
+    return _countWhere(test).toString();
   }
 
-  onPop(value) {
-    reset();
-    fetchSummary();
+  String _money(double? v) {
+    if (_loading) return ". . .";
+    if (_failed || v == null) return "—";
+    return MynPalette.money(v);
   }
 
   Future<void> initializeNotifications() async {
@@ -158,11 +127,17 @@ class _HomeState extends State<Home> {
     });
   }
 
+  void _openOrders() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) {
+      return MynOrders(show_back_button: true);
+    })).then(onPop);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: _surface,
+      backgroundColor: MynPalette.surface,
       body: RefreshIndicator(
         color: MyTheme.accent_color,
         backgroundColor: Colors.white,
@@ -172,19 +147,15 @@ class _HomeState extends State<Home> {
           physics: AlwaysScrollableScrollPhysics(),
           slivers: [
             if (showNotificationPermissionRequest.$)
-              SliverToBoxAdapter(
-                child: buildNotificationPermissionRequest(),
-              ),
+              SliverToBoxAdapter(child: buildNotificationPermissionRequest()),
             if (!is_updated_version.$)
-              SliverToBoxAdapter(
-                child: updateAppNotification(),
-              ),
+              SliverToBoxAdapter(child: updateAppNotification()),
             SliverList(
               delegate: SliverChildListDelegate([
                 buildHeroHeader(context),
-                if (_summary_failed) buildSummaryError(),
+                if (_failed) buildSummaryError(),
                 buildOrdersSection(context),
-                buildInProgressSection(context),
+                buildDeductionsSection(context),
                 SizedBox(height: 28),
               ]),
             ),
@@ -218,8 +189,6 @@ class _HomeState extends State<Home> {
     );
   }
 
-  // Teal hero that continues the app bar colour, then curves into the light
-  // body. Money lives here; counts live in the cards below.
   Widget buildHeroHeader(BuildContext context) {
     final String name = displayName();
 
@@ -228,7 +197,7 @@ class _HomeState extends State<Home> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [MyTheme.accent_color, _accentDark],
+          colors: [MyTheme.accent_color, MynPalette.accentDark],
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
@@ -253,25 +222,18 @@ class _HomeState extends State<Home> {
               Expanded(
                 child: buildMoneyTile(
                   "Total Collected",
-                  _total_collection,
+                  _money(_summary?.customerPaidTotal),
                   Icons.account_balance_wallet_rounded,
-                  () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) {
-                      return Collection(show_back_button: true);
-                    })).then((value) {
-                      onPop(value);
-                    });
-                  },
+                  _openOrders,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: buildMoneyTile(
-                  "Earnings",
-                  _total_earning,
+                  "Net Earnings",
+                  _money(_summary?.totals.earnings),
                   Icons.trending_up_rounded,
-                  null,
+                  _openOrders,
                 ),
               ),
             ],
@@ -282,7 +244,7 @@ class _HomeState extends State<Home> {
   }
 
   Widget buildMoneyTile(
-      String label, String? value, IconData icon, VoidCallback? onTap) {
+      String label, String value, IconData icon, VoidCallback? onTap) {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -321,7 +283,7 @@ class _HomeState extends State<Home> {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    value ?? ". . .",
+                    value,
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 22,
@@ -341,19 +303,19 @@ class _HomeState extends State<Home> {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: _redTint,
+        color: MynPalette.redTint,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Color.fromRGBO(220, 90, 68, 0.28)),
       ),
       child: Row(
         children: [
-          Icon(Icons.cloud_off_rounded, color: _red, size: 20),
+          Icon(Icons.cloud_off_rounded, color: MynPalette.red, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               "Couldn't load your summary. Pull down to retry.",
-              style:
-                  TextStyle(color: _headingColor, fontSize: 13, height: 1.35),
+              style: TextStyle(
+                  color: MynPalette.heading, fontSize: 13, height: 1.35),
             ),
           ),
         ],
@@ -367,28 +329,20 @@ class _HomeState extends State<Home> {
       child: Text(
         text,
         style: TextStyle(
-            color: _headingColor, fontSize: 16, fontWeight: FontWeight.w700),
+            color: MynPalette.heading,
+            fontSize: 16,
+            fontWeight: FontWeight.w700),
       ),
     );
   }
 
-  BoxDecoration buildCardDecoration() {
-    return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: _cardBorder),
-      boxShadow: [
-        BoxShadow(
-          color: Color.fromRGBO(16, 42, 45, 0.05),
-          blurRadius: 14,
-          offset: Offset(0, 6),
-        ),
-      ],
-    );
-  }
+  bool _isDone(String s) =>
+      s == "DELIVERED" || s == "COMPLETED" || s == "SUCCESS";
+  bool _isOpen(String s) =>
+      s == "CREATED" || s == "SUBMITTED" || s == "PENDING";
+  bool _isDead(String s) =>
+      s == "FAILED" || s == "CANCELLED" || s == "REJECTED";
 
-  // One grouped card of three counts reads as a single unit, which the old
-  // full-bleed "Cancelled" bar never did.
   Widget buildOrdersSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,58 +352,34 @@ class _HomeState extends State<Home> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
             clipBehavior: Clip.antiAlias,
-            decoration: buildCardDecoration(),
+            decoration: MynPalette.card(),
             child: IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   buildStatCell(
-                    "Completed",
-                    _completed_delivery,
-                    Icons.check_circle_rounded,
-                    _green,
-                    _greenTint,
-                    () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (context) {
-                        return CompletedDelivery(show_back_button: true);
-                      })).then((value) {
-                        onPop(value);
-                      });
-                    },
-                  ),
+                      "Completed",
+                      _count(_isDone),
+                      Icons.check_circle_rounded,
+                      MynPalette.green,
+                      MynPalette.greenTint,
+                      _openOrders),
                   buildCellDivider(),
                   buildStatCell(
-                    "Pending",
-                    _pending_delivery,
-                    Icons.schedule_rounded,
-                    _amber,
-                    _amberTint,
-                    () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (context) {
-                        return Main(startingIndex: 1);
-                      })).then((value) {
-                        onPop(value);
-                      });
-                    },
-                  ),
+                      "Open",
+                      _count(_isOpen),
+                      Icons.schedule_rounded,
+                      MynPalette.blue,
+                      MynPalette.blueTint,
+                      _openOrders),
                   buildCellDivider(),
                   buildStatCell(
-                    "Cancelled",
-                    _cancelled,
-                    Icons.cancel_rounded,
-                    _red,
-                    _redTint,
-                    () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (context) {
-                        return CancelledDelivery(show_back_button: true);
-                      })).then((value) {
-                        onPop(value);
-                      });
-                    },
-                  ),
+                      "Failed",
+                      _count(_isDead),
+                      Icons.cancel_rounded,
+                      MynPalette.red,
+                      MynPalette.redTint,
+                      _openOrders),
                 ],
               ),
             ),
@@ -460,7 +390,7 @@ class _HomeState extends State<Home> {
   }
 
   Widget buildCellDivider() {
-    return Container(width: 1, color: _cardBorder);
+    return Container(width: 1, color: MynPalette.cardBorder);
   }
 
   Widget buildStatCell(String label, String value, IconData icon, Color color,
@@ -487,7 +417,7 @@ class _HomeState extends State<Home> {
                   child: Text(
                     value,
                     style: TextStyle(
-                        color: _headingColor,
+                        color: MynPalette.heading,
                         fontSize: 22,
                         fontWeight: FontWeight.w700),
                   ),
@@ -497,7 +427,7 @@ class _HomeState extends State<Home> {
                   label,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: _mutedColor,
+                      color: MynPalette.muted,
                       fontSize: 12,
                       fontWeight: FontWeight.w500),
                 ),
@@ -509,71 +439,39 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget buildInProgressSection(BuildContext context) {
+  /// Mirrors the deductions the web Business Panel breaks out between
+  /// "Total Paid" and "Net Earnings".
+  Widget buildDeductionsSection(BuildContext context) {
+    final t = _summary?.totals;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildSectionTitle("In progress"),
+        buildSectionTitle("Deductions"),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: buildCardDecoration(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: MynPalette.card(),
             child: Column(
               children: [
-                buildProgressRow(
-                  "On The Way",
-                  _on_the_way,
-                  'assets/human_run.png',
-                  _green,
-                  _greenTint,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              Pending(index: 0, show_back_button: true)),
-                    ).then((value) {
-                      onPop(value);
-                    });
-                  },
-                ),
+                buildDeductionRow("GST (CGST + SGST)", _money(t?.totalGst),
+                    Icons.receipt_rounded, MynPalette.amber,
+                    MynPalette.amberTint),
                 buildRowDivider(),
-                buildProgressRow(
-                  "Confirmed",
-                  _picked,
-                  'assets/press.png',
-                  _amber,
-                  _amberTint,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              Pending(index: 1, show_back_button: true)),
-                    ).then((value) {
-                      onPop(value);
-                    });
-                  },
-                ),
+                buildDeductionRow("MYN Commission", _money(t?.commission),
+                    Icons.percent_rounded, MynPalette.red, MynPalette.redTint),
                 buildRowDivider(),
-                buildProgressRow(
-                  "Assigned",
-                  _assigned,
-                  'assets/sandclock.png',
-                  _red,
-                  _redTint,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              Pending(index: 2, show_back_button: true)),
-                    ).then((value) {
-                      onPop(value);
-                    });
-                  },
-                ),
+                buildDeductionRow("Platform Fee", _money(t?.platformFee),
+                    Icons.apps_rounded, MynPalette.blue, MynPalette.blueTint),
+                buildRowDivider(),
+                buildDeductionRow("TDS", _money(t?.tds),
+                    Icons.account_balance_rounded, MynPalette.muted,
+                    MynPalette.surface),
+                buildRowDivider(),
+                buildDeductionRow("Delivery Charge", _money(t?.dc),
+                    Icons.local_shipping_rounded, MynPalette.green,
+                    MynPalette.greenTint),
               ],
             ),
           ),
@@ -584,56 +482,41 @@ class _HomeState extends State<Home> {
 
   Widget buildRowDivider() {
     return Padding(
-      padding: const EdgeInsets.only(left: 68),
-      child: Container(height: 1, color: _cardBorder),
+      padding: const EdgeInsets.only(left: 46),
+      child: Container(height: 1, color: MynPalette.cardBorder),
     );
   }
 
-  Widget buildProgressRow(String label, String value, String assetPath,
-      Color color, Color tint, VoidCallback onTap) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                height: 40,
-                width: 40,
-                decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
-                padding: const EdgeInsets.all(9),
-                child: Image.asset(assetPath, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                      color: _headingColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600),
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: tint,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  value,
-                  style: TextStyle(
-                      color: color, fontSize: 13, fontWeight: FontWeight.w700),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(Icons.chevron_right_rounded, color: _mutedColor, size: 20),
-            ],
+  Widget buildDeductionRow(
+      String label, String value, IconData icon, Color color, Color tint) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 13),
+      child: Row(
+        children: [
+          Container(
+            height: 32,
+            width: 32,
+            decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 17),
           ),
-        ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                  color: MynPalette.heading,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+                color: MynPalette.heading,
+                fontSize: 14,
+                fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
   }
@@ -643,8 +526,8 @@ class _HomeState extends State<Home> {
       message:
           "A newer version of the app is available. Please update for a better experience.",
       actionLabel: "Update",
-      color: _amber,
-      tint: _amberTint,
+      color: MynPalette.amber,
+      tint: MynPalette.amberTint,
       onPressed: requestNotificationPermission,
     );
   }
@@ -653,8 +536,8 @@ class _HomeState extends State<Home> {
     return buildBanner(
       message: "Allow notifications for smooth app functioning",
       actionLabel: "Allow",
-      color: _red,
-      tint: _redTint,
+      color: MynPalette.red,
+      tint: MynPalette.redTint,
       onPressed: requestNotificationPermission,
     );
   }
@@ -680,7 +563,7 @@ class _HomeState extends State<Home> {
             child: Text(
               message,
               style: TextStyle(
-                  color: _headingColor, fontSize: 13, height: 1.35),
+                  color: MynPalette.heading, fontSize: 13, height: 1.35),
             ),
           ),
           const SizedBox(width: 10),
