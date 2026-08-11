@@ -20,7 +20,9 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  String _login_by = "phone"; //phone or email
+  // The MYN online-shop API matches a seller on username or email only (see
+  // auth.controller.js login), so the phone branch is not a valid login path.
+  String _login_by = "email"; //phone or email
   String initialCountry = 'US';
   PhoneNumber phoneCode = PhoneNumber(isoCode: 'IN', dialCode: "+91");
   String? _phone = "";
@@ -100,17 +102,16 @@ class _LoginState extends State<Login> {
       //       loginResponse.user!.id.toString(), fcmToken);
       // }
 
+      // The MYN online-shop API issues the JWT directly on a successful
+      // username/password login. There is no SMS verification step — the OTP
+      // screen belongs to the legacy Laravel CMS (/auth/confirm_code), which
+      // this API does not expose — so go straight into the app.
       access_token.load().whenComplete(() {
         if (access_token.$!.isNotEmpty) {
-          print("redirecting to opt screen");
-          Navigator.push(context, MaterialPageRoute(builder: (context) {
-            return Otp(
-              mobile: _phone,
-              verify_by: "phone",
-              user_id: loginResponse.user!.id,
-              type: "login",
-            );
-          }));
+          Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => Main()),
+              (route) => false);
         }
       });
     }
@@ -232,7 +233,7 @@ class _LoginState extends State<Login> {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 4.0),
                           child: Text(
-                            _login_by == "email" ? "Email" : "Phone",
+                            "Password",
                             style: TextStyle(
                                 color: MyTheme.dark_grey,
                                 fontWeight: FontWeight.w600),
@@ -248,11 +249,16 @@ class _LoginState extends State<Login> {
                                   height: 36,
                                   child: TextField(
                                     style: TextStyle(color: MyTheme.dark_grey),
-                                    controller: _emailController,
+                                    controller: _passwordController,
                                     autofocus: false,
+                                    obscureText: true,
+                                    enableSuggestions: false,
+                                    autocorrect: false,
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: (_) => onPressedLogin(),
                                     decoration:
                                         InputDecorations.buildInputDecoration_1(
-                                            hint_text: "johndoe@example.com"),
+                                            hint_text: "Enter password"),
                                   ),
                                 ),
                                 AddonConfig.otp_addon_installed
