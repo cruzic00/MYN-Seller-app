@@ -9,6 +9,19 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+// Several plugins still pin older compileSdk values (e.g. audio_session pins 34,
+// whose platform is not installed). Compiling every module against 36 is backward
+// compatible and keeps plugin requirements satisfied.
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            project.android {
+                compileSdk = 36
+            }
+        }
+    }
+}
+
 subprojects {
     project.evaluationDependsOn(':app')
 
