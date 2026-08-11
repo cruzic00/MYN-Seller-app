@@ -47,19 +47,61 @@ class _MainDrawerState extends State<MainDrawer> {
     Navigator.push(context, MaterialPageRoute(builder: (context) => page));
   }
 
-  void _onTapLogout(BuildContext context) async {
-    var logoutResponse = await AuthRepository().getLogoutResponse();
+  /// Signing out is entirely local.
+  ///
+  /// This used to GET `${BASE_URL}/auth/logout`, a legacy Laravel route the MYN
+  /// API does not have. It answered with a 404 page, parsing that as JSON threw,
+  /// and because the throw happened before clearUserData() the seller was left
+  /// signed in with nothing on screen to explain why. The token is a JWT held
+  /// only on the device, so dropping it here is the whole job.
+  Future<void> _onTapLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text("Sign out?",
+            style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: MynPalette.heading)),
+        content: Text(
+          "You'll need your username and password to get back in.",
+          style: TextStyle(
+              fontSize: 13.5, height: 1.4, color: MynPalette.muted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text("Cancel", style: TextStyle(color: MynPalette.muted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: MynPalette.red,
+              foregroundColor: Colors.white,
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text("Sign out"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
     AuthHelper().clearUserData();
-    if (logoutResponse.result == null) {
-      ToastComponent.showDialog(logoutResponse.message,
-          gravity: Toast.center, duration: Toast.lengthLong);
-      Navigator.push(context, MaterialPageRoute(builder: (context) {
-        return Login();
-      }));
-    } else {
-      ToastComponent.showDialog(logoutResponse.message,
-          gravity: Toast.center, duration: Toast.lengthLong, isError: true);
-    }
+
+    ToastComponent.showDialog("Signed out",
+        gravity: Toast.center, duration: Toast.lengthShort);
+
+    // Wipe the stack: without this the back button walked straight back into
+    // the signed-in screens that are still mounted behind the login page.
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => Login()),
+      (route) => false,
+    );
   }
 
   String _shopName() {
