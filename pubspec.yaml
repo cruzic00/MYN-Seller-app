@@ -93,6 +93,14 @@ dev_dependencies:
   json_serializable: ^6.8.0
   route_transitions: ^2.0.1
 
+# flutter_icons_null_safety 1.1.0 is the last published version and subclasses
+# IconData, which Flutter now seals as a final class, so it no longer compiles.
+# third_party/ holds a patched copy whose icon constants are plain IconData
+# literals; the API and font assets are otherwise identical to upstream.
+dependency_overrides:
+  flutter_icons_null_safety:
+    path: third_party/flutter_icons_null_safety
+
 flutter_launcher_icons:
   image_path: "assets/image/icon.png"
   android: true
