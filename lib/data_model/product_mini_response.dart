@@ -32,11 +32,22 @@ class ProductMiniResponse {
     // It returns the whole list in one response, so there is no meta/paging.
     if (data is Map<String, dynamic>) {
       final list = (data["stocklist"] as List?) ?? const [];
+      final products = list
+          .map((x) => Product.fromJson(x as Map<String, dynamic>))
+          .toList();
       return ProductMiniResponse(
-        products: list
-            .map((x) => Product.fromJson(x as Map<String, dynamic>))
-            .toList(),
-        meta: null,
+        products: products,
+        // This endpoint has no server-side paging, but the product screens
+        // dereference meta with `!` (e.g. productlist.dart reads meta!.total),
+        // so describe the payload as a single full page rather than null.
+        meta: Meta(
+          currentPage: 1,
+          from: products.isEmpty ? 0 : 1,
+          lastPage: 1,
+          perPage: products.length,
+          to: products.length,
+          total: products.length,
+        ),
         success: json["success"],
         status: json["statusCode"],
       );
