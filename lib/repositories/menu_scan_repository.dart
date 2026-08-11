@@ -4,15 +4,33 @@ import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'package:myn_seller_app/app_config.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
+import 'package:myn_seller_app/repositories/business_category_repository.dart';
 import 'package:myn_seller_app/repositories/product_repository.dart';
 
 /// One dish read off a menu photo, before the seller has approved it.
+///
+/// Everything the web Business Panel's edit dialog shows is editable here too,
+/// so a scanned item lands complete rather than needing a second pass on the
+/// panel to fill in brand, subcategory and status.
 class ScannedMenuItem {
   String name;
   String category;
   String description;
   String confidence;
   List<ScannedVariant> variants;
+
+  String brand;
+  String subCategory;
+  String status;
+
+  /// Set from the category dropdown so the storefront can group the item by id
+  /// rather than by a name that might be re-spelled later.
+  String categoryId;
+  String subcategoryId;
+
+  /// A `data:` URL from the image generator. addStockItem materialises this to
+  /// S3 on save, so it never has to be uploaded separately.
+  String? imageDataUrl;
 
   /// Sellers deselect rows they don't want rather than deleting them, so a
   /// misread item can be corrected instead of forcing a re-scan.
@@ -24,6 +42,12 @@ class ScannedMenuItem {
     required this.description,
     required this.confidence,
     required this.variants,
+    this.brand = "",
+    this.subCategory = "",
+    this.status = "Active",
+    this.categoryId = "",
+    this.subcategoryId = "",
+    this.imageDataUrl,
     this.selected = true,
   });
 
@@ -48,6 +72,22 @@ class ScannedMenuItem {
   }
 
   bool get hasZeroPrice => variants.any((v) => v.price <= 0);
+
+  bool get hasImage => imageDataUrl != null && imageDataUrl!.isNotEmpty;
+
+  /// Points the item at one of the seller's own categories, clearing any
+  /// subcategory that belonged to the previous one.
+  void applyCategory(ShopCategory? cat) {
+    category = cat?.name ?? "";
+    categoryId = cat?.id ?? "";
+    subCategory = "";
+    subcategoryId = "";
+  }
+
+  void applySubcategory(ShopSubcategory? sub) {
+    subCategory = sub?.name ?? "";
+    subcategoryId = sub?.id ?? "";
+  }
 }
 
 class ScannedVariant {
@@ -114,6 +154,38 @@ class MenuScanRepository {
     );
   }
 
+  /// POST /api/business/generate-product-image — an illustrative photo for one
+  /// dish, returned as a `data:` URL. Nothing is stored until the item is saved.
+  Future<String> generateImage(ScannedMenuItem item) async {
+    final uri = Uri.parse(
+        "${AppConfig.MYN_BASE_URL}/business/generate-product-image");
+
+    final response = await http.post(
+      uri,
+      headers: {
+        "Authorization": "Bearer ${access_token.$}",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "name": item.name.trim(),
+        "category": item.category.trim(),
+        "description": item.description.trim(),
+      }),
+    );
+
+    log("POST $uri (${item.name}) -> ${response.statusCode}");
+
+    if (response.statusCode != 200) {
+      throw Exception(_messageFrom(response.body, response.statusCode));
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = (body["data"] as Map<String, dynamic>?) ?? const {};
+    final url = data["dataUrl"]?.toString() ?? "";
+    if (url.isEmpty) throw Exception("No image returned");
+    return url;
+  }
+
   /// POST /api/business/business-stocklist — one approved item.
   ///
   /// Shaped for `addStockItem`, which keys the shop off `bywhom` and derives
@@ -125,9 +197,19 @@ class MenuScanRepository {
     final payload = {
       "bywhom": ProductRepository.sellerIdentifier(),
       "productName": item.name.trim(),
+      "brand": item.brand.trim(),
       "category": item.category.trim(),
+      "categoryId": item.categoryId,
+      "subCategory": item.subCategory.trim(),
+      "subcategoryId": item.subcategoryId,
       "description": item.description.trim(),
-      "status": "Active",
+      "status": item.status,
+      if (item.hasImage) ...{
+        "imageUrl": item.imageDataUrl,
+        // Same review queue as a seller-uploaded photo: an admin approves it on
+        // the verification page before customers see it.
+        "imageStatus": "Pending",
+      },
       "variants": item.variants
           .map((v) => {
                 "variantUnit": v.unit.trim(),
@@ -160,6 +242,6 @@ class MenuScanRepository {
         return decoded["message"].toString();
       }
     } catch (_) {}
-    return "Scan failed ($status)";
+    return "Request failed ($status)";
   }
 }
