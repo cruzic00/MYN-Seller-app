@@ -151,22 +151,6 @@ class _ProductCardState extends State<ProductCard> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             TextButton(
-                              onPressed: ToggleIsActive,
-                              child: Text(
-                                widget.is_active! ? 'Hide' : 'Show',
-                                style: TextStyle(color: Colors.black),
-                              ),
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                backgroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16.0),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            TextButton(
                               onPressed: () {
                                 Navigator.push(context,
                                     MaterialPageRoute(builder: (context) {
