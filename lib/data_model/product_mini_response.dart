@@ -23,14 +23,32 @@ class ProductMiniResponse {
   int? status;
   Meta? meta;
 
-  factory ProductMiniResponse.fromJson(Map<String, dynamic> json) =>
-      ProductMiniResponse(
-        products:
-            List<Product>.from(json["data"].map((x) => Product.fromJson(x))),
-        meta: json["meta"] == null ? null : Meta.fromJson(json["meta"]),
+  factory ProductMiniResponse.fromJson(Map<String, dynamic> json) {
+    final data = json["data"];
+
+    // MYN online-shop API: { success, message, data: { stocklist: [...] } }.
+    // It returns the whole list in one response, so there is no meta/paging.
+    if (data is Map<String, dynamic>) {
+      final list = (data["stocklist"] as List?) ?? const [];
+      return ProductMiniResponse(
+        products: list
+            .map((x) => Product.fromJson(x as Map<String, dynamic>))
+            .toList(),
+        meta: null,
         success: json["success"],
-        status: json["status"],
+        status: json["statusCode"],
       );
+    }
+
+    // Legacy Laravel CMS: { data: [...], meta: {...} }.
+    return ProductMiniResponse(
+      products: List<Product>.from(
+          (data as List).map((x) => Product.fromJson(x))),
+      meta: json["meta"] == null ? null : Meta.fromJson(json["meta"]),
+      success: json["success"],
+      status: json["status"],
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         "data": List<dynamic>.from(products!.map((x) => x.toJson())),
