@@ -6,7 +6,6 @@ import 'package:myn_seller_app/helpers/auth_helper.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/myn_palette.dart';
-import 'package:myn_seller_app/repositories/auth_repository.dart';
 import 'package:myn_seller_app/screens/collection.dart';
 import 'package:myn_seller_app/screens/download_report.dart';
 import 'package:myn_seller_app/screens/login.dart';
