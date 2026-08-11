@@ -59,29 +59,27 @@ android {
     }
 
    signingConfigs {
-        release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null // original code
-            // storeFile file("key.jks") ? file("key.jks") : null //new solution for some customers
-            storePassword keystoreProperties['storePassword']
+        // Only define the release signing config when key.properties is present.
+        // Without it storeFile is null and Gradle fails to configure the project.
+        if (keystorePropertiesFile.exists()) {
+            release {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+                storePassword keystoreProperties['storePassword']
+            }
         }
     }
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.release
+            signingConfig = keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             shrinkResources =  false
             minifyEnabled = true
         }
         debug {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.release
+            signingConfig = signingConfigs.debug
             shrinkResources = false
-            minifyEnabled = true
-
+            minifyEnabled = false
         }
     }
 }
