@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:myn_seller_app/helpers/common_utility.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
-import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/repositories/auth_repository.dart';
+import 'package:myn_seller_app/ui_elements/magic_nav_bar.dart';
 import 'package:myn_seller_app/screens/home.dart';
 import 'package:myn_seller_app/screens/login.dart';
 import 'package:myn_seller_app/screens/myn_orders.dart';
@@ -30,7 +30,7 @@ class _MainState extends State<Main> {
   /// tells _hideNoInternetBottomSheet whether there is anything to close.
   bool _noInternetSheetOpen = false;
 
-  final List<Widget> _children = const [
+  final List<Widget> _children = [
     Home(),
     MynOrders(),
     CategoryProducts(),
