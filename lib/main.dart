@@ -64,6 +64,13 @@ main() async {
   user_phone.load();
   showNotificationPermissionRequest.load();
 
+  // MYN online-shop seller identity. Without these the API calls that key off
+  // :uid are built with an empty identifier after a cold start.
+  seller_mongo_id.load();
+  seller_uid.load();
+  seller_username.load();
+  seller_role.load();
+
   print('is login ${is_logged_in.$}');
   access_token.load().whenComplete(() {
     fetch_user();

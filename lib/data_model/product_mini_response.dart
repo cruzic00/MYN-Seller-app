@@ -106,15 +106,30 @@ class Product {
     // MYN online-shop stocklist item (MongoDB): productName / appPrice / mrp /
     // imageUrl / status, keyed by a String _id.
     if (json.containsKey("productName") || json.containsKey("appPrice")) {
-      final appPrice = _toDouble(json["appPrice"]);
-      final mrp = _toDouble(json["mrp"]);
+      // Restaurant/hypermarket items price per variant ("Plate", "500g", ...),
+      // leaving the top-level appPrice/mrp at 0. Fall back to the first variant
+      // so the card shows the real price instead of ₹0.00.
+      final variants = (json["variants"] as List?) ?? const [];
+      final Map<String, dynamic> v0 = variants.isNotEmpty
+          ? (variants.first as Map<String, dynamic>)
+          : const {};
+
+      var appPrice = _toDouble(json["appPrice"]);
+      if (appPrice == 0) appPrice = _toDouble(v0["appPrice"]);
+      if (appPrice == 0) appPrice = _toDouble(v0["base_price"]);
+
+      var mrp = _toDouble(json["mrp"]);
+      if (mrp == 0) mrp = _toDouble(v0["mrp"]);
+      if (mrp == 0) mrp = _toDouble(v0["compare_at_price"]);
+
       final status = json["status"];
 
       return Product(
         id: null,
         mongo_id: json["_id"]?.toString(),
         name: json["productName"] ?? json["foodName"] ?? "",
-        thumbnail_image: _absoluteImageUrl(json["imageUrl"]),
+        thumbnail_image: _absoluteImageUrl(
+            _firstNonEmpty([json["imageUrl"], v0["imageUrl"]])),
         main_price: _formatPrice(appPrice),
         stroked_price: _formatPrice(mrp),
         seller_price: _formatPrice(appPrice),
@@ -142,6 +157,14 @@ class Product {
       is_active: json["is_active"],
       links: json["links"] == null ? null : Links.fromJson(json["links"]),
     );
+  }
+
+  static String _firstNonEmpty(List<dynamic> candidates) {
+    for (final c in candidates) {
+      final s = c?.toString() ?? "";
+      if (s.isNotEmpty) return s;
+    }
+    return "";
   }
 
   static double _toDouble(dynamic v) {
