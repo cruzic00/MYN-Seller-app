@@ -40,7 +40,7 @@ class NotificationService {
       iOS: initializationSettingsIOS,
     );
     await _flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: _onDidReceiveNotificationResponse,
     );
   }
@@ -483,10 +483,11 @@ class NotificationService {
           NotificationDetails(android: androidPlatformChannelSpecifics);
 
       await _flutterLocalNotificationsPlugin.show(
-        Random().nextInt(100),
-        'New Order Received',
-        'Order ID: ${id}, ${orderItemResponse.ordered_items![0].product_name} x ${orderItemResponse.ordered_items![0].quantity}',
-        platformChannelSpecifics,
+        id: Random().nextInt(100),
+        title: 'New Order Received',
+        body:
+            'Order ID: ${id}, ${orderItemResponse.ordered_items![0].product_name} x ${orderItemResponse.ordered_items![0].quantity}',
+        notificationDetails: platformChannelSpecifics,
         payload: id.toString(),
       );
     }
