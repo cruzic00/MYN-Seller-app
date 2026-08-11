@@ -264,6 +264,11 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     Navigator.pop(context, _savedCount > 0);
   }
 
+  void _applyImage(int index, String dataUrl) {
+    _items[index].imageDataUrl = dataUrl;
+    _thumbs[index] = base64Decode(dataUrl.split(",").last);
+  }
+
   void _toast(String message) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
