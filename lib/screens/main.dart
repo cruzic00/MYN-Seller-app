@@ -149,7 +149,7 @@ class _MainState extends State<Main> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      onPopInvoked: (willpop) => onPopInvoked(willpop, context),
+      onPopInvokedWithResult: (didPop, _) => onPopInvoked(didPop, context),
       child: access_token.$!.isNotEmpty
           ? Scaffold(
               extendBody: true,
