@@ -87,7 +87,8 @@ class _MainState extends State<Main> {
   }
 
   void _showNoInternetBottomSheet() {
-    if (!has_internet.$) {
+    if (!has_internet.$ && !_noInternetSheetOpen && mounted) {
+      _noInternetSheetOpen = true;
       showModalBottomSheet(
         context: context,
         isDismissible: false,
@@ -123,8 +124,16 @@ class _MainState extends State<Main> {
     }
   }
 
+  /// Closes only the sheet this class opened.
+  ///
+  /// This used to popUntil(isFirst), which threw the seller out of whatever
+  /// screen they were on the moment the connection came back — mid-order,
+  /// mid-scan, anywhere. The flag tracks our own sheet so nothing else is
+  /// touched.
   void _hideNoInternetBottomSheet() {
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (!_noInternetSheetOpen || !mounted) return;
+    _noInternetSheetOpen = false;
+    Navigator.of(context).pop();
   }
 
   @override
@@ -140,45 +149,28 @@ class _MainState extends State<Main> {
       child: access_token.$!.isNotEmpty
           ? Scaffold(
               extendBody: true,
-              body: _children[_currentIndex],
-              bottomNavigationBar: NavigationBar(
-                elevation: 2,
-                selectedIndex: _currentIndex,
-                onDestinationSelected: onTapped,
-                indicatorColor: MyTheme.accent_color_2,
-                backgroundColor: MyTheme.white,
-                destinations: [
-                  NavigationDestination(
-                    icon: Icon(
-                      Icons.dashboard_outlined,
-                      color: MyTheme.dark_grey,
-                    ),
-                    selectedIcon: Icon(
-                      Icons.dashboard,
-                      color: MyTheme.accent_color,
-                    ),
+              // IndexedStack, not _children[_currentIndex]: indexing tore the
+              // other two tabs out of the tree, so every switch disposed their
+              // state and re-ran their network fetch. Keeping all three mounted
+              // makes tab changes instant and stops the refetch on each tap.
+              body: IndexedStack(index: _currentIndex, children: _children),
+              bottomNavigationBar: MagicNavBar(
+                currentIndex: _currentIndex,
+                onTap: onTapped,
+                items: const [
+                  MagicNavItem(
+                    icon: Icons.dashboard_outlined,
+                    activeIcon: Icons.dashboard_rounded,
                     label: "Dashboard",
                   ),
-                  NavigationDestination(
-                    icon: Icon(
-                      Icons.receipt_long_outlined,
-                      color: MyTheme.dark_grey,
-                    ),
-                    selectedIcon: Icon(
-                      Icons.receipt_long,
-                      color: MyTheme.accent_color,
-                    ),
+                  MagicNavItem(
+                    icon: Icons.receipt_long_outlined,
+                    activeIcon: Icons.receipt_long_rounded,
                     label: "Orders",
                   ),
-                  NavigationDestination(
-                    icon: Icon(
-                      Icons.store_outlined,
-                      color: MyTheme.dark_grey,
-                    ),
-                    selectedIcon: Icon(
-                      Icons.store,
-                      color: MyTheme.accent_color,
-                    ),
+                  MagicNavItem(
+                    icon: Icons.storefront_outlined,
+                    activeIcon: Icons.storefront_rounded,
                     label: "Products",
                   ),
                 ],
