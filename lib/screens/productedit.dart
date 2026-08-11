@@ -98,21 +98,9 @@ class _ProductEditState extends State<ProductEdit> {
     }
   }
 
-  Future<void> _toggleIsActive() async {
-    var postBody = jsonEncode({
-      "productId": widget.id,
-      "status": _isActive!,
-    });
-
-    final response = await http.post(
-      Uri.parse("${AppConfig.BASE_URL}/product/change-status"),
-      headers: {"Content-Type": "application/json", "Authorization": "Bearer ${access_token.$}"},
-      body: postBody,
-    );
-
-    var dataUser = json.decode(response.body);
-    ToastComponent.showDialog(dataUser['message'], gravity: Toast.center, duration: Toast.lengthLong);
-  }
+  /// Status is sent as part of the single PATCH in [_onPressUpdate]; the API
+  /// stores it as the capitalised strings "Active" / "Inactive".
+  String get _statusValue => (_isActive ?? true) ? "Active" : "Inactive";
 
   Future<void> _onPressUpdate() async {
     var name = _nameController.text.trim();
@@ -126,20 +114,43 @@ class _ProductEditState extends State<ProductEdit> {
       return;
     }
 
-    var postBody =
-        jsonEncode({"id": widget.id, "name": name, "mrp": mrp, "sellerprice": sellerPrice, "quantity": quantity});
+    final productId = widget.mongo_id;
+    if (productId == null || productId.isEmpty) {
+      ToastComponent.showDialog("This product has no MongoDB id",
+          gravity: Toast.center, duration: Toast.lengthLong, isError: true);
+      return;
+    }
 
-    final response = await http.post(
-      Uri.parse("${AppConfig.BASE_URL}/product/update"),
-      headers: {"Content-Type": "application/json", "Authorization": "Bearer ${access_token.$}"},
-      body: postBody,
-    );
+    // Send the full variant list back with only the first variant's prices
+    // changed, so fields the app does not edit (unit, tax, commission) survive.
+    final variants = ((_product?["variants"] as List?) ?? const [])
+        .map((v) => Map<String, dynamic>.from(v as Map))
+        .toList();
 
-    var dataUser = json.decode(response.body);
-    await _toggleIsActive();
+    if (variants.isEmpty) {
+      variants.add(<String, dynamic>{"unit": "Unit"});
+    }
 
-    if (dataUser['status'] == "success") {
+    variants[0]["appPrice"] = num.tryParse(sellerPrice) ?? 0;
+    variants[0]["base_price"] = num.tryParse(sellerPrice) ?? 0;
+    variants[0]["mrp"] = num.tryParse(mrp) ?? 0;
+    variants[0]["compare_at_price"] = num.tryParse(mrp) ?? 0;
+    variants[0]["stock"] = num.tryParse(quantity) ?? 0;
+
+    final ok = await ProductRepository().updateMynProduct(productId, {
+      "productName": name,
+      "status": _statusValue,
+      "stock": num.tryParse(quantity) ?? 0,
+      "variants": variants,
+    });
+
+    if (ok) {
+      ToastComponent.showDialog("Product updated",
+          gravity: Toast.center, duration: Toast.lengthLong);
       fetchAll();
+    } else {
+      ToastComponent.showDialog("Could not update product",
+          gravity: Toast.center, duration: Toast.lengthLong, isError: true);
     }
   }
 

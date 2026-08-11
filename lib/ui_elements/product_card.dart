@@ -172,6 +172,7 @@ class _ProductCardState extends State<ProductCard> {
                                     MaterialPageRoute(builder: (context) {
                                   return ProductEdit(
                                     id: widget.id,
+                                    mongo_id: widget.mongo_id,
                                   );
                                 }));
                               },
