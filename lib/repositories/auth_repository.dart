@@ -10,13 +10,18 @@ import '../data_model/confirm_code_response.dart';
 import '../data_model/resend_code_response.dart';
 
 class AuthRepository {
-  Future<LoginResponse> getLoginResponse(String? email, String password) async {
-    var postBody = jsonEncode(
-        {"user_type": "delivery_boy", "phone": email, "password": password});
+  /// Authenticates against the MYN online-shop API (POST /api/auth/login),
+  /// which looks the seller up in the MongoDB `User` collection and falls back
+  /// to `Admin`. [identifier] may be a username or an email — the server
+  /// matches either, case-insensitively.
+  Future<LoginResponse> getLoginResponse(
+      String? identifier, String password) async {
+    var postBody =
+        jsonEncode({"username": identifier?.trim(), "password": password});
 
     try {
       final response = await http.post(
-        Uri.parse("${AppConfig.BASE_URL}/auth/sellerlogin"),
+        Uri.parse("${AppConfig.MYN_BASE_URL}/auth/login"),
         headers: {
           "Content-Type": "application/json",
           "X-Requested-With": "XMLHttpRequest"
@@ -24,7 +29,10 @@ class AuthRepository {
         body: postBody,
       );
 
-      if (response.statusCode == 200) {
+      // The API answers 401 with a JSON ApiResponse envelope on bad
+      // credentials. Parse it so the UI can show the server's message instead
+      // of a generic failure.
+      if (response.statusCode == 200 || response.statusCode == 401) {
         return loginResponseFromJson(response.body);
       } else {
         throw Exception('Failed to login: ${response.body}');

@@ -29,6 +29,8 @@ class _LoginState extends State<Login> {
   TextEditingController _phoneNumberController = TextEditingController();
   TextEditingController _emailController = TextEditingController();
   TextEditingController _passwordController = TextEditingController();
+  // The MYN online-shop API authenticates on username-or-email + password.
+  TextEditingController _usernameController = TextEditingController();
 
   @override
   void initState() {
@@ -52,15 +54,11 @@ class _LoginState extends State<Login> {
   }
 
   onPressedLogin() async {
-    var email = _emailController.text.toString();
+    var username = _usernameController.text.toString().trim();
     var password = _passwordController.text.toString();
 
-    if (_login_by == 'email' && email == "") {
-      ToastComponent.showDialog("Enter email",
-          gravity: Toast.center, duration: Toast.lengthLong, isError: true);
-      return;
-    } else if (_login_by == 'phone' && _phone == "") {
-      ToastComponent.showDialog("Enter phone number",
+    if (username == "") {
+      ToastComponent.showDialog("Enter username or email",
           gravity: Toast.center, duration: Toast.lengthLong, isError: true);
       return;
     } else if (password == "") {
@@ -70,7 +68,7 @@ class _LoginState extends State<Login> {
     }
 
     var loginResponse =
-        await AuthRepository().getLoginResponse(_phone, password);
+        await AuthRepository().getLoginResponse(username, password);
 
     if (loginResponse.result == false) {
       ToastComponent.showDialog(loginResponse.message,
@@ -187,7 +185,7 @@ class _LoginState extends State<Login> {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 4.0),
                           child: Text(
-                            "Name",
+                            "Username",
                             style: TextStyle(
                                 color: MyTheme.dark_grey,
                                 fontWeight: FontWeight.w600),
@@ -201,14 +199,16 @@ class _LoginState extends State<Login> {
                               Container(
                                 height: 36,
                                 child: TextField(
-                                  controller: _passwordController,
+                                  controller: _usernameController,
                                   autofocus: false,
                                   enableSuggestions: false,
                                   autocorrect: false,
+                                  keyboardType: TextInputType.text,
+                                  textInputAction: TextInputAction.next,
                                   style: TextStyle(color: MyTheme.dark_grey),
                                   decoration:
                                       InputDecorations.buildInputDecoration_1(
-                                          hint_text: "Enter Seller Name"),
+                                          hint_text: "Username or email"),
                                 ),
                               ),
                               /*GestureDetector(

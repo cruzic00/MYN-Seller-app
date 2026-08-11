@@ -62,6 +62,35 @@ final SharedValue<String?> user_name = SharedValue(
   autosave: true, // autosave to shared prefs when value changes
 );
 
+// ── MYN online-shop (MongoDB) seller identity ──────────────────────────────
+// The legacy Laravel API identified a seller by an int `user_id`. MongoDB uses
+// String ObjectIds, and the Node API keys most seller routes off `uid`, so the
+// String identity is kept alongside `user_id` while endpoints are migrated.
+
+final SharedValue<String?> seller_mongo_id = SharedValue(
+  value: "", // MongoDB _id of the logged-in seller
+  key: "seller_mongo_id", // disk storage key for shared_preferences
+  autosave: true, // autosave to shared prefs when value changes
+);
+
+final SharedValue<String?> seller_uid = SharedValue(
+  value: "", // business-facing seller id used as :uid in Node routes
+  key: "seller_uid", // disk storage key for shared_preferences
+  autosave: true, // autosave to shared prefs when value changes
+);
+
+final SharedValue<String?> seller_username = SharedValue(
+  value: "", // login username
+  key: "seller_username", // disk storage key for shared_preferences
+  autosave: true, // autosave to shared prefs when value changes
+);
+
+final SharedValue<String?> seller_role = SharedValue(
+  value: "", // role returned by the API (seller, admin, ...)
+  key: "seller_role", // disk storage key for shared_preferences
+  autosave: true, // autosave to shared prefs when value changes
+);
+
 final SharedValue<String?> user_email = SharedValue(
   value: "", // initial value
   key: "user_email", // disk storage key for shared_preferences
