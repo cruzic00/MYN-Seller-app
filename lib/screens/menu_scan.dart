@@ -174,7 +174,7 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
         setState(() => _generating.add(i));
         final url = await MenuScanRepository().generateImage(_items[i]);
         if (!mounted) return;
-        setState(() => _items[i].imageDataUrl = url);
+        setState(() => _applyImage(i, url));
       } catch (_) {
         failed++;
       } finally {
