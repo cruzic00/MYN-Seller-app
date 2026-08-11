@@ -109,13 +109,26 @@ class ProductRepository {
     }
   }
 
+  /// Identifier the MYN online-shop API accepts for a seller. Its handlers
+  /// match `_id`, `uid`, `username` or `email`, so fall through the ones we
+  /// stored at login until a non-empty value is found.
+  static String sellerIdentifier() {
+    for (final candidate in [seller_uid.$, seller_mongo_id.$, seller_username.$]) {
+      if (candidate != null && candidate.isNotEmpty) return candidate;
+    }
+    return "";
+  }
+
   Future<ProductMiniResponse> getCategoryProducts(
       {int page = 1, String? name}) async {
+    // GET /api/business/business-stocklist/:uid — returns the seller's full
+    // stocklist in one response (no server-side paging), optionally filtered
+    // by ?search=.
     String url =
-        "${AppConfig.BASE_URL}/products/sellerproducts?id=${user_id.$}&page=${page}";
+        "${AppConfig.MYN_BASE_URL}/business/business-stocklist/${Uri.encodeComponent(sellerIdentifier())}";
 
     if (name != null && name.isNotEmpty) {
-      url += "&name=${Uri.encodeComponent(name)}";
+      url += "?search=${Uri.encodeComponent(name)}";
     }
 
     Uri uri = Uri.parse(url);
@@ -123,6 +136,7 @@ class ProductRepository {
     try {
       final response = await http.get(uri, headers: {
         "App-Language": app_language.$,
+        "Authorization": "Bearer ${access_token.$}",
       });
 
       log("Request URL: $uri");
