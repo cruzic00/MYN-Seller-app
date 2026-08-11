@@ -146,7 +146,7 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     try {
       final url = await MenuScanRepository().generateImage(item);
       if (!mounted) return;
-      setState(() => item.imageDataUrl = url);
+      setState(() => _applyImage(index, url));
     } catch (e) {
       if (mounted) _toast(_clean(e));
     } finally {
@@ -770,11 +770,8 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
                       strokeWidth: 2, color: MyTheme.accent_color),
                 ),
               )
-            : item.hasImage
-                ? Image.memory(
-                    base64Decode(item.imageDataUrl!.split(",").last),
-                    fit: BoxFit.cover,
-                  )
+            : _thumbs[index] != null
+                ? Image.memory(_thumbs[index]!, fit: BoxFit.cover)
                 : Icon(Icons.auto_awesome_outlined,
                     size: 19, color: MynPalette.muted),
       ),
