@@ -8,7 +8,7 @@ import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/repositories/auth_repository.dart';
 import 'package:myn_seller_app/screens/home.dart';
 import 'package:myn_seller_app/screens/login.dart';
-import 'package:myn_seller_app/screens/pending.dart';
+import 'package:myn_seller_app/screens/myn_orders.dart';
 import 'package:myn_seller_app/screens/productlist.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -28,9 +28,7 @@ class _MainState extends State<Main> {
 
   var _children = [
     Home(),
-    Pending(
-      index: 2,
-    ),
+    MynOrders(),
     CategoryProducts()
   ];
 
