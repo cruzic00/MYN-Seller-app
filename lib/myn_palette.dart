@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 /// Shared tokens for the redesigned seller screens (dashboard, orders, order
-/// detail). Tonal pairs — a saturated foreground plus a tinted background —
+/// detail). Tonal pairs â a saturated foreground plus a tinted background â
 /// keep the accent colours from competing with the brand teal in MyTheme.
 class MynPalette {
   static const Color surface = Color(0xFFF3F6F7);
@@ -20,6 +20,15 @@ class MynPalette {
   static const Color blueTint = Color(0xFFE7EEFA);
 
   static const Color accentDark = Color(0xFF2C6A70);
+
+  /// Brand yellow, sampled from the MYN artwork.
+  ///
+  /// It is a *surface* colour — headers, heroes, the login page — never a
+  /// fill behind white text, which it cannot carry (1.7:1). Always pair it with
+  /// [onYellow]; teal stays the action colour for buttons and icons.
+  static const Color brandYellow = Color(0xFFFDC82D);
+  static const Color brandYellowDeep = Color(0xFFF3AD03);
+  static const Color onYellow = Color(0xFF4A3600);
 
   static BoxDecoration card() => BoxDecoration(
         color: Colors.white,
@@ -55,8 +64,8 @@ class MynPalette {
     }
   }
 
-  /// Grouped to match the web Business Panel ("₹9,907.96").
+  /// Grouped to match the web Business Panel ("â¹9,907.96").
   static final NumberFormat _money = NumberFormat("#,##0.00");
 
-  static String money(num v) => "₹${_money.format(v)}";
+  static String money(num v) => "â¹${_money.format(v)}";
 }

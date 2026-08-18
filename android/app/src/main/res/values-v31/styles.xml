@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12 replaced the plain windowBackground launch screen with the
+         SplashScreen API, which draws the launcher icon on a solid colour. The
+         icon is blanked and the colour matched to the artwork, so a cold start
+         goes straight to the yellow splash. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowSplashScreenBackground">@color/splash_yellow</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_no_icon</item>
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/splash_yellow</item>
+    </style>
+</resources>

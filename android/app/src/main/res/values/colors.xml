@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the top edge of assets/splash_myn.jpg so the system launch
+         screen and the Flutter splash are the same colour, with no white flash
+         and no visible seam between them. -->
+    <color name="splash_yellow">#FEBC04</color>
+</resources>
