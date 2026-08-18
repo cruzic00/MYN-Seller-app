@@ -232,7 +232,7 @@ class _MainDrawerState extends State<MainDrawer> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [MyTheme.accent_color, MynPalette.accentDark],
+          colors: [MynPalette.brandYellow, MynPalette.brandYellowDeep],
         ),
         borderRadius: const BorderRadius.only(
             bottomRight: Radius.circular(28)),
@@ -244,10 +244,10 @@ class _MainDrawerState extends State<MainDrawer> {
             height: 58,
             width: 58,
             decoration: BoxDecoration(
-              color: const Color.fromRGBO(255, 255, 255, 0.18),
+              color: const Color.fromRGBO(74, 54, 0, 0.12),
               shape: BoxShape.circle,
               border: Border.all(
-                  color: const Color.fromRGBO(255, 255, 255, 0.30), width: 1.5),
+                  color: const Color.fromRGBO(74, 54, 0, 0.22), width: 1.5),
             ),
             clipBehavior: Clip.antiAlias,
             alignment: Alignment.center,
@@ -255,7 +255,7 @@ class _MainDrawerState extends State<MainDrawer> {
                 ? Text(
                     name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
                     style: const TextStyle(
-                        color: Colors.white,
+                        color: MynPalette.onYellow,
                         fontSize: 24,
                         fontWeight: FontWeight.w700),
                   )
@@ -267,7 +267,7 @@ class _MainDrawerState extends State<MainDrawer> {
                     errorWidget: (c, u, e) => Text(
                       name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
                       style: const TextStyle(
-                          color: Colors.white,
+                          color: MynPalette.onYellow,
                           fontSize: 24,
                           fontWeight: FontWeight.w700),
                     ),
@@ -279,7 +279,7 @@ class _MainDrawerState extends State<MainDrawer> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+                color: MynPalette.onYellow, fontSize: 18, fontWeight: FontWeight.w700),
           ),
           if (contact.isNotEmpty) ...[
             const SizedBox(height: 3),
@@ -288,7 +288,7 @@ class _MainDrawerState extends State<MainDrawer> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                  color: Color.fromRGBO(255, 255, 255, 0.75), fontSize: 13),
+                  color: Color.fromRGBO(74, 54, 0, 0.70), fontSize: 13),
             ),
           ],
           if ((seller_role.$ ?? "").trim().isNotEmpty) ...[
@@ -297,13 +297,13 @@ class _MainDrawerState extends State<MainDrawer> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color.fromRGBO(255, 255, 255, 0.16),
+                color: const Color.fromRGBO(74, 54, 0, 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 (seller_role.$ ?? "").toUpperCase(),
                 style: const TextStyle(
-                    color: Colors.white,
+                    color: MynPalette.onYellow,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.4),
