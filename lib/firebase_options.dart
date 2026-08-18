@@ -50,12 +50,13 @@ class DefaultFirebaseOptions {
   }
 
   // Moved from the 'meettheneeds' project to 'myn-sales'. The seller app is
-  // registered there as com.meetyourneeds.seller, and the service-account key
+  // registered there as com.meetyoureneeds.seller (the spelling Play Console
+  // permanently assigned to this listing), and the service-account key
   // the backend pushes with belongs to that project — an FCM send only reaches
   // devices registered under the same project as the sender.
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyB-NcoVOlboGfzoeKGDDtT6FkNsuicjLYU',
-    appId: '1:357882681208:android:c8e62b7bb5e74f8283da8d',
+    appId: '1:357882681208:android:8dc49288f5da150383da8d',
     messagingSenderId: '357882681208',
     projectId: 'myn-sales',
     storageBucket: 'myn-sales.appspot.com',
