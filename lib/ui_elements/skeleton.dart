@@ -39,6 +39,20 @@ class Skeleton extends StatelessWidget {
         highlightColor = onDarkHighlight,
         super(key: key);
 
+  // The dashboard hero is brand yellow, where a white shimmer barely registers.
+  // Dark ink at low alpha reads as a placeholder there the way white does on teal.
+  static const Color onYellowBase = Color.fromRGBO(74, 54, 0, 0.16);
+  static const Color onYellowHighlight = Color.fromRGBO(74, 54, 0, 0.07);
+
+  const Skeleton.onYellow({
+    Key? key,
+    this.width = 90,
+    this.height = 20,
+    this.radius = 6,
+  })  : baseColor = onYellowBase,
+        highlightColor = onYellowHighlight,
+        super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
