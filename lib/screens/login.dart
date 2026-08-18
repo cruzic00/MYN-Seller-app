@@ -20,6 +20,11 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  /// Sampled from the artwork's own background, so the page and the bottom edge
+  /// of the illustration meet with no visible seam.
+  static const Color _pageYellow = Color(0xFFFDC82D);
+  static const Color _inkOnYellow = Color(0xFF5A4300);
+
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FocusNode _passwordFocus = FocusNode();
@@ -101,124 +106,49 @@ class _LoginState extends State<Login> {
     ToastContext().init(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      // Dark status-bar icons: the artwork sitting behind them is light yellow.
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: MyTheme.accent_color,
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                MyTheme.accent_color,
-                MynPalette.accentDark,
-                const Color(0xFF1E4F54),
-              ],
-            ),
-          ),
-          child: Stack(
+        backgroundColor: _pageYellow,
+        body: SingleChildScrollView(
+          // Everything scrolls together, so opening the keyboard slides the
+          // artwork up rather than scrolling the card underneath a pinned image.
+          child: Column(
             children: [
-              // Soft light blooms, so the gradient does not read as a flat slab.
-              Positioned(
-                  top: -90, right: -70, child: _bloom(230, 0.10)),
-              Positioned(
-                  bottom: -110, left: -80, child: _bloom(280, 0.07)),
-              SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, constraints) => SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 22, vertical: 24),
-                    child: ConstrainedBox(
-                      constraints:
-                          BoxConstraints(minHeight: constraints.maxHeight - 48),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 420),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildBrand(),
-                              const SizedBox(height: 26),
-                              _buildCard(),
-                              const SizedBox(height: 20),
-                              _buildFooter(),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+              // Deliberately outside any SafeArea: the artwork runs under the
+              // status bar, and its top strip is empty yellow anyway.
+              Image.asset(
+                "assets/login_myn.jpg",
+                width: double.infinity,
+                fit: BoxFit.fitWidth,
+              ),
+              Transform.translate(
+                offset: const Offset(0, -22),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: _buildCard(),
                 ),
               ),
+              _buildFooter(),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 18),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _bloom(double size, double opacity) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: opacity),
-      ),
-    );
-  }
-
-  Widget _buildBrand() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: const [
-              BoxShadow(
-                color: Color.fromRGBO(6, 32, 34, 0.22),
-                blurRadius: 26,
-                offset: Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Image.asset("assets/app_logo.png", width: 132),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          "The Seller",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 21,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "Run your shop from your pocket",
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.75),
-            fontSize: 13,
-          ),
-        ),
-      ],
     );
   }
 
   Widget _buildCard() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
+      padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(26),
         boxShadow: const [
           BoxShadow(
-            color: Color.fromRGBO(6, 32, 34, 0.20),
-            blurRadius: 30,
-            offset: Offset(0, 14),
+            color: Color.fromRGBO(90, 67, 0, 0.22),
+            blurRadius: 26,
+            offset: Offset(0, 12),
           ),
         ],
       ),
@@ -239,7 +169,7 @@ class _LoginState extends State<Login> {
             style: TextStyle(
                 color: MynPalette.muted, fontSize: 13.5, height: 1.35),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
           _label("Username or email"),
           const SizedBox(height: 7),
           TextField(
@@ -258,7 +188,7 @@ class _LoginState extends State<Login> {
               icon: Icons.person_outline_rounded,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 15),
           _label("Password"),
           const SizedBox(height: 7),
           TextField(
@@ -289,7 +219,7 @@ class _LoginState extends State<Login> {
               ),
             ),
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 24),
           SizedBox(
             height: 52,
             width: double.infinity,
@@ -298,7 +228,8 @@ class _LoginState extends State<Login> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: MyTheme.accent_color,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: MyTheme.accent_color.withValues(alpha: 0.55),
+                disabledBackgroundColor:
+                    MyTheme.accent_color.withValues(alpha: 0.55),
                 disabledForegroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -371,21 +302,25 @@ class _LoginState extends State<Login> {
   }
 
   Widget _buildFooter() {
-    return Column(
-      children: [
-        Icon(Icons.support_agent_rounded,
-            color: Colors.white.withValues(alpha: 0.75), size: 19),
-        const SizedBox(height: 6),
-        Text(
-          "Trouble signing in? Contact the MYN admin.",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.80),
-            fontSize: 12.5,
-            height: 1.4,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 6, 24, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.support_agent_rounded, color: _inkOnYellow, size: 17),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              "Trouble signing in? Contact the MYN admin.",
+              style: TextStyle(
+                color: _inkOnYellow,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
