@@ -1,0 +1,87 @@
+================================================================
+PLAY STORE LISTING TEXT  —  copy and paste these into Play Console
+================================================================
+
+APP NAME (max 30 characters)
+----------------------------------------------------------------
+MYN The Seller
+
+
+SHORT DESCRIPTION (max 80 characters)
+----------------------------------------------------------------
+Run your shop on MYN: orders, stock, menu and earnings in one place.
+
+
+FULL DESCRIPTION (max 4000 characters)
+----------------------------------------------------------------
+MYN The Seller is the shop owner's app for the MYN marketplace. Track
+every order, keep your stock current and watch your earnings without
+leaving the counter.
+
+WHAT YOU CAN DO
+
+Orders at a glance
+See what has come in, what is still open and what has been delivered.
+Filter by today, yesterday, the last week, month or year, and open any
+order to see the full payment breakdown - what the customer paid, tax,
+commission, delivery charge and exactly what you earn.
+
+Mark orders packed
+New orders sit on your dashboard. One tap moves an order along and it
+leaves the list, so the dashboard always shows only what still needs you.
+
+Scan your menu
+Photograph your printed menu and the app reads every dish and price off
+it. Check the list, correct anything that was misread, and add it all to
+your stock in one go - instead of typing forty items by hand.
+
+Manage your items
+Edit a dish the same way you would on the web panel: picture, name,
+category, food type, packaging charge, status, and as many portion sizes
+and prices as you need.
+
+Open and closed
+Flip your shop open or closed from the dashboard whenever you need to
+stop taking orders.
+
+Your earnings
+Total collected and net earnings are on the dashboard, with tax and
+commission shown for every single order.
+
+WHO IT IS FOR
+Restaurants, bakeries, hypermarkets and any other shop selling on MYN.
+You will need a MYN seller account to sign in.
+
+
+APP CATEGORY
+----------------------------------------------------------------
+Business
+
+
+TAGS / KEYWORDS
+----------------------------------------------------------------
+seller app, shop management, order management, restaurant orders,
+menu management, stock, MYN
+
+
+WHAT'S NEW (for the first release)
+----------------------------------------------------------------
+First release. Orders, dashboard earnings, stock management, menu
+photo scanning and shop open/closed control.
+
+
+================================================================
+DATA SAFETY FORM - what to declare in Play Console
+================================================================
+Say YES to collecting these, and that they are used for App
+functionality / Account management:
+
+  - Name, email address, phone number   (seller account)
+  - Photos                              (menu and product pictures)
+  - Purchase / order history            (orders and earnings)
+  - Approximate location                (only if the app asks for it)
+
+Say YES to "Is data encrypted in transit"  (the app uses HTTPS).
+Say NO  to "Is data shared with third parties" unless you actually do.
+
+Your privacy policy page must list the same things.

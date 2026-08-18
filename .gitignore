@@ -142,3 +142,8 @@ app.*.symbols
 # FVM
 .fvm/*
 
+
+# Play Store upload artefacts. The listing images and text are worth keeping;
+# the bundle is a 67MB build output that would bloat the repo permanently.
+playstore/*.aab
+playstore/*.apk
