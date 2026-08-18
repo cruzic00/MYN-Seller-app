@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:myn_seller_app/app_config.dart';
 import 'package:myn_seller_app/data_model/myn_product_response.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
+import 'package:myn_seller_app/repositories/product_repository.dart';
 
 class MynProductRepository {
   /// GET /api/business/business-product/:productId
@@ -34,6 +35,33 @@ class MynProductRepository {
       throw Exception("Product not found");
     }
     return MynProduct.fromJson(product);
+  }
+
+  /// PATCH /api/business/business-stocklist/:uid/:productId
+  ///
+  /// The endpoint takes a flat patch and does the rest itself: it keeps
+  /// productName/foodName in step, runs syncVariantPriceFields over `variants`,
+  /// and pushes a `data:` imageUrl to S3 before saving. So send plain values.
+  Future<bool> updateProduct(String mongoId, Map<String, dynamic> updates) async {
+    final uid = ProductRepository.sellerIdentifier();
+    final uri = Uri.parse(
+        "${AppConfig.MYN_BASE_URL}/business/business-stocklist/$uid/$mongoId");
+
+    final response = await http.patch(
+      uri,
+      headers: {
+        "Authorization": "Bearer ${access_token.$}",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode(updates),
+    );
+
+    log("PATCH $uri -> ${response.statusCode}");
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(_messageFrom(response.body, response.statusCode));
+    }
+    return true;
   }
 
   String _messageFrom(String body, int status) {

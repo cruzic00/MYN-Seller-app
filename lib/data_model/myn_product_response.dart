@@ -13,6 +13,8 @@ class MynProduct {
   final String status;
   final String imageStatus;
   final String foodType;
+  final double packagingCharge;
+  final bool offerActive;
   final List<MynProductVariant> variants;
 
   MynProduct({
@@ -26,6 +28,8 @@ class MynProduct {
     required this.status,
     required this.imageStatus,
     required this.foodType,
+    required this.packagingCharge,
+    required this.offerActive,
     required this.variants,
   });
 
@@ -44,6 +48,8 @@ class MynProduct {
       status: (json["status"] ?? "").toString(),
       imageStatus: (json["imageStatus"] ?? "None").toString(),
       foodType: (json["foodType"] ?? "").toString(),
+      packagingCharge: MynProductVariant._num(json["packagingCharge"]),
+      offerActive: json["offerActive"] == true,
       variants: raw
           .whereType<Map<String, dynamic>>()
           .map(MynProductVariant.fromJson)
