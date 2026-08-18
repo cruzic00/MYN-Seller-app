@@ -162,7 +162,7 @@ class _MynOrdersState extends State<MynOrders> {
 
   Widget _buildPeriodBar() {
     return Container(
-      color: MyTheme.accent_color,
+      color: MynPalette.brandYellow,
       padding: const EdgeInsets.only(bottom: 12),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -175,7 +175,7 @@ class _MynOrdersState extends State<MynOrders> {
               child: Material(
                 color: selected
                     ? Colors.white
-                    : Color.fromRGBO(255, 255, 255, 0.16),
+                    : Color.fromRGBO(74, 54, 0, 0.13),
                 borderRadius: BorderRadius.circular(20),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(20),
@@ -187,7 +187,7 @@ class _MynOrdersState extends State<MynOrders> {
                       _periods[i].label,
                       style: TextStyle(
                         color:
-                            selected ? MyTheme.accent_color : Colors.white,
+                            MynPalette.onYellow,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
