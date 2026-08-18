@@ -93,7 +93,7 @@ class _MynOrdersState extends State<MynOrders> {
         actions: [
           IconButton(
             onPressed: _loading ? null : _fetch,
-            icon: Icon(Icons.refresh_rounded, color: Colors.white),
+            icon: Icon(Icons.refresh_rounded, color: MynPalette.onYellow),
           ),
         ],
       ),

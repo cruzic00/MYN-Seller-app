@@ -215,7 +215,7 @@ class _HomeState extends State<Home> {
       titleSpacing: 0,
       backgroundColor: MynPalette.brandYellow,
       scrolledUnderElevation: 0.0,
-      systemOverlayStyle: SystemUiOverlayStyle.light,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
       centerTitle: true,
     );
   }
@@ -422,7 +422,7 @@ class _HomeState extends State<Home> {
                         child: Text(
                           value,
                           style: TextStyle(
-                              color: Colors.white,
+                              color: MynPalette.onYellow,
                               fontSize: 22,
                               fontWeight: FontWeight.w700),
                         ),
