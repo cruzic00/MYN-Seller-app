@@ -231,7 +231,7 @@ class _HomeState extends State<Home> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [MyTheme.accent_color, MynPalette.accentDark],
+          colors: [MynPalette.brandYellow, MynPalette.brandYellowDeep],
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
@@ -255,8 +255,8 @@ class _HomeState extends State<Home> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color.fromRGBO(59, 134, 140, 0.92),
-                      Color.fromRGBO(44, 106, 112, 0.96),
+                      Color.fromRGBO(253, 200, 45, 0.93),
+                      Color.fromRGBO(243, 173, 3, 0.96),
                     ],
                   ),
                 ),
@@ -279,7 +279,7 @@ class _HomeState extends State<Home> {
                     Text(
                       "Hello,",
                       style: TextStyle(
-                          color: Color.fromRGBO(255, 255, 255, 0.75),
+                          color: Color.fromRGBO(74, 54, 0, 0.70),
                           fontSize: 13),
                     ),
                     const SizedBox(height: 1),
@@ -288,7 +288,7 @@ class _HomeState extends State<Home> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: Colors.white,
+                          color: MynPalette.onYellow,
                           fontSize: 19,
                           fontWeight: FontWeight.w700),
                     ),
@@ -336,17 +336,17 @@ class _HomeState extends State<Home> {
     final Widget monogram = Text(
       name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
       style: TextStyle(
-          color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700),
+          color: MynPalette.onYellow, fontSize: 19, fontWeight: FontWeight.w700),
     );
 
     return Container(
       height: 44,
       width: 44,
       decoration: BoxDecoration(
-        color: Color.fromRGBO(255, 255, 255, 0.18),
+        color: Color.fromRGBO(74, 54, 0, 0.12),
         shape: BoxShape.circle,
         border:
-            Border.all(color: Color.fromRGBO(255, 255, 255, 0.32), width: 1.2),
+            Border.all(color: Color.fromRGBO(74, 54, 0, 0.22), width: 1.2),
       ),
       clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
@@ -368,7 +368,7 @@ class _HomeState extends State<Home> {
     final bool open = shop_active.$;
 
     return Material(
-      color: Color.fromRGBO(255, 255, 255, open ? 0.18 : 0.10),
+      color: Color.fromRGBO(74, 54, 0, open ? 0.14 : 0.08),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -382,7 +382,7 @@ class _HomeState extends State<Home> {
                 height: 8,
                 width: 8,
                 decoration: BoxDecoration(
-                  color: open ? Color(0xFF7BE495) : Color(0xFFFFB4A2),
+                  color: open ? Color(0xFF1B7F3B) : Color(0xFFB33A26),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -390,7 +390,7 @@ class _HomeState extends State<Home> {
               Text(
                 open ? "Open" : "Closed",
                 style: TextStyle(
-                    color: Colors.white,
+                    color: MynPalette.onYellow,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700),
               ),
@@ -406,9 +406,9 @@ class _HomeState extends State<Home> {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Color.fromRGBO(255, 255, 255, 0.14),
+        color: Color.fromRGBO(74, 54, 0, 0.11),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color.fromRGBO(255, 255, 255, 0.20)),
+        border: Border.all(color: Color.fromRGBO(74, 54, 0, 0.18)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -422,14 +422,14 @@ class _HomeState extends State<Home> {
                 Row(
                   children: [
                     Icon(icon,
-                        size: 17, color: Color.fromRGBO(255, 255, 255, 0.85)),
+                        size: 17, color: Color.fromRGBO(74, 54, 0, 0.78)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         label,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            color: Color.fromRGBO(255, 255, 255, 0.85),
+                            color: Color.fromRGBO(74, 54, 0, 0.78),
                             fontSize: 12,
                             fontWeight: FontWeight.w500),
                       ),
@@ -440,7 +440,7 @@ class _HomeState extends State<Home> {
                 _loading
                     ? const Padding(
                         padding: EdgeInsets.symmetric(vertical: 4),
-                        child: Skeleton.onDark(width: 108, height: 22),
+                        child: Skeleton.onYellow(width: 108, height: 22),
                       )
                     : FittedBox(
                         fit: BoxFit.scaleDown,
