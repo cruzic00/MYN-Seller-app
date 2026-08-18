@@ -110,28 +110,40 @@ class _LoginState extends State<Login> {
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: _pageYellow,
-        body: SingleChildScrollView(
-          // Everything scrolls together, so opening the keyboard slides the
-          // artwork up rather than scrolling the card underneath a pinned image.
-          child: Column(
-            children: [
-              // Deliberately outside any SafeArea: the artwork runs under the
-              // status bar, and its top strip is empty yellow anyway.
-              Image.asset(
-                "assets/login_myn.jpg",
-                width: double.infinity,
-                fit: BoxFit.fitWidth,
-              ),
-              Transform.translate(
-                offset: const Offset(0, -22),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  child: _buildCard(),
+        body: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            // Everything scrolls together, so opening the keyboard slides the
+            // artwork up rather than scrolling the card under a pinned image.
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              // IntrinsicHeight gives the Column a real height to divide, which
+              // is what lets the wordmark sit against the bottom of the screen
+              // on a tall phone and simply follow the content on a short one.
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    // Deliberately outside any SafeArea: the artwork runs under
+                    // the status bar, and its top strip is empty yellow anyway.
+                    Image.asset(
+                      "assets/login_myn.jpg",
+                      width: double.infinity,
+                      fit: BoxFit.fitWidth,
+                    ),
+                    Transform.translate(
+                      offset: const Offset(0, -24),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        child: _buildCard(),
+                      ),
+                    ),
+                    _buildFooter(),
+                    const Spacer(),
+                    _buildWordmark(),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+                  ],
                 ),
               ),
-              _buildFooter(),
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 18),
-            ],
+            ),
           ),
         ),
       ),
@@ -140,36 +152,74 @@ class _LoginState extends State<Login> {
 
   Widget _buildCard() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
+      padding: const EdgeInsets.fromLTRB(22, 16, 22, 26),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: const [
           BoxShadow(
-            color: Color.fromRGBO(90, 67, 0, 0.22),
-            blurRadius: 26,
-            offset: Offset(0, 12),
+            color: Color.fromRGBO(88, 62, 0, 0.24),
+            blurRadius: 34,
+            offset: Offset(0, 16),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Welcome back",
-            style: TextStyle(
-              color: MynPalette.heading,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
+          Center(
+            child: Container(
+              width: 44,
+              height: 4,
+              decoration: BoxDecoration(
+                color: MynPalette.cardBorder,
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
           ),
-          const SizedBox(height: 5),
-          Text(
-            "Sign in to manage your orders and stock.",
-            style: TextStyle(
-                color: MynPalette.muted, fontSize: 13.5, height: 1.35),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // A short brand rule beside the heading, so the card has one
+              // deliberate accent instead of being an undifferentiated slab.
+              Container(
+                width: 4,
+                height: 26,
+                margin: const EdgeInsets.only(top: 2),
+                decoration: BoxDecoration(
+                  color: MyTheme.accent_color,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Welcome back",
+                      style: TextStyle(
+                        color: MynPalette.heading,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      "Sign in to manage your orders and stock.",
+                      style: TextStyle(
+                          color: MynPalette.muted,
+                          fontSize: 13,
+                          height: 1.35),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 24),
           _label("Username or email"),
           const SizedBox(height: 7),
           TextField(
@@ -188,7 +238,7 @@ class _LoginState extends State<Login> {
               icon: Icons.person_outline_rounded,
             ),
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 16),
           _label("Password"),
           const SizedBox(height: 7),
           TextField(
@@ -219,42 +269,63 @@ class _LoginState extends State<Login> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 52,
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _loading ? null : onPressedLogin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: MyTheme.accent_color,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor:
-                    MyTheme.accent_color.withValues(alpha: 0.55),
-                disabledForegroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15)),
-              ),
+          const SizedBox(height: 26),
+          _buildSignInButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignInButton() {
+    return Opacity(
+      opacity: _loading ? 0.75 : 1,
+      child: Container(
+        height: 54,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [MyTheme.accent_color, MynPalette.accentDark],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: MyTheme.accent_color.withValues(alpha: 0.34),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: _loading ? null : onPressedLogin,
+            child: Center(
               child: _loading
                   ? const SizedBox(
-                      width: 21,
-                      height: 21,
+                      width: 22,
+                      height: 22,
                       child: CircularProgressIndicator(
                           strokeWidth: 2.2, color: Colors.white),
                     )
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+                      children: const [
                         Text("Sign in",
                             style: TextStyle(
-                                fontSize: 15.5, fontWeight: FontWeight.w700)),
-                        const SizedBox(width: 7),
-                        Icon(Icons.arrow_forward_rounded, size: 19),
+                                color: Colors.white,
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2)),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward_rounded,
+                            size: 19, color: Colors.white),
                       ],
                     ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -285,17 +356,17 @@ class _LoginState extends State<Login> {
       filled: true,
       fillColor: MynPalette.surface,
       contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: MynPalette.cardBorder),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: MynPalette.cardBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: MyTheme.accent_color, width: 1.6),
       ),
     );
@@ -303,7 +374,7 @@ class _LoginState extends State<Login> {
 
   Widget _buildFooter() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 6, 24, 0),
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -321,6 +392,27 @@ class _LoginState extends State<Login> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildWordmark() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // The logo asset is transparent, so it sits on the yellow directly
+        // rather than needing a plate behind it.
+        Image.asset("assets/app_logo.png", width: 92),
+        const SizedBox(height: 2),
+        Text(
+          "Seller Partner App",
+          style: TextStyle(
+            color: _inkOnYellow.withValues(alpha: 0.72),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.1,
+          ),
+        ),
+      ],
     );
   }
 }
