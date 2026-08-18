@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 /// Shared tokens for the redesigned seller screens (dashboard, orders, order
-/// detail). Tonal pairs â a saturated foreground plus a tinted background â
+/// detail). Tonal pairs — a saturated foreground plus a tinted background —
 /// keep the accent colours from competing with the brand teal in MyTheme.
 class MynPalette {
   static const Color surface = Color(0xFFF3F6F7);
@@ -64,8 +64,8 @@ class MynPalette {
     }
   }
 
-  /// Grouped to match the web Business Panel ("â¹9,907.96").
+  /// Grouped to match the web Business Panel ("₹9,907.96").
   static final NumberFormat _money = NumberFormat("#,##0.00");
 
-  static String money(num v) => "â¹${_money.format(v)}";
+  static String money(num v) => "₹${_money.format(v)}";
 }
