@@ -275,7 +275,10 @@ class _CategoryProductsState extends State<CategoryProducts> {
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
                 childAspectRatio: 0.74),
-            padding: EdgeInsets.all(8),
+            // Bottom clears the floating nav bar and the gesture inset so the
+            // last row of cards is reachable.
+            padding: EdgeInsets.fromLTRB(
+                8, 8, 8, 100 + MediaQuery.of(context).padding.bottom),
             physics: NeverScrollableScrollPhysics(),
             shrinkWrap: true,
             itemBuilder: (context, index) {
