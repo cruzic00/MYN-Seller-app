@@ -81,15 +81,15 @@ class _MynOrdersState extends State<MynOrders> {
       backgroundColor: MynPalette.surface,
       appBar: AppBar(
         titleTextStyle: TextStyle(
-            fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+            fontSize: 20, fontWeight: FontWeight.w700, color: MynPalette.onYellow),
         title: Text("Orders"),
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: MyTheme.accent_color,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        backgroundColor: MynPalette.brandYellow,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         automaticallyImplyLeading: widget.show_back_button,
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: MynPalette.onYellow),
         actions: [
           IconButton(
             onPressed: _loading ? null : _fetch,

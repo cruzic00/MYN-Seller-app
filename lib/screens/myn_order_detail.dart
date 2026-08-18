@@ -90,14 +90,14 @@ class _MynOrderDetailState extends State<MynOrderDetail> {
       backgroundColor: MynPalette.surface,
       appBar: AppBar(
         titleTextStyle: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
+            fontSize: 18, fontWeight: FontWeight.w700, color: MynPalette.onYellow),
         title: Text(widget.orderLabel),
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: MyTheme.accent_color,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
-        iconTheme: IconThemeData(color: Colors.white),
+        backgroundColor: MynPalette.brandYellow,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        iconTheme: IconThemeData(color: MynPalette.onYellow),
       ),
       body: _loading
           ? Center(child: CircularProgressIndicator(color: MyTheme.accent_color))

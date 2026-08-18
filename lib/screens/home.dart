@@ -203,17 +203,17 @@ class _HomeState extends State<Home> {
       BuildContext context, GlobalKey<ScaffoldState> _scaffoldKey) {
     return AppBar(
       titleTextStyle: TextStyle(
-          fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+          fontSize: 20, fontWeight: FontWeight.w700, color: MynPalette.onYellow),
       leading: IconButton(
         onPressed: () {
           _scaffoldKey.currentState!.openDrawer();
         },
-        icon: Icon(Icons.menu_rounded, size: 26, color: Colors.white),
+        icon: Icon(Icons.menu_rounded, size: 26, color: MynPalette.onYellow),
       ),
       title: Text("Dashboard"),
       elevation: 0.0,
       titleSpacing: 0,
-      backgroundColor: MyTheme.accent_color,
+      backgroundColor: MynPalette.brandYellow,
       scrolledUnderElevation: 0.0,
       systemOverlayStyle: SystemUiOverlayStyle.light,
       centerTitle: true,

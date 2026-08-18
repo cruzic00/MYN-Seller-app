@@ -126,14 +126,14 @@ class _MynProfileScreenState extends State<MynProfileScreen> {
       backgroundColor: MynPalette.surface,
       appBar: AppBar(
         titleTextStyle: TextStyle(
-            fontSize: 19, fontWeight: FontWeight.w700, color: Colors.white),
+            fontSize: 19, fontWeight: FontWeight.w700, color: MynPalette.onYellow),
         title: Text("Profile"),
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: MyTheme.accent_color,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
-        iconTheme: IconThemeData(color: Colors.white),
+        backgroundColor: MynPalette.brandYellow,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        iconTheme: IconThemeData(color: MynPalette.onYellow),
       ),
       body: _error != null
           ? _buildError()
