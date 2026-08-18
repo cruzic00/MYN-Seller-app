@@ -1,4 +1,4 @@
-package com.meettheneeds.seller
+package com.meetyourneeds.seller
 
 // import io.flutter.embedding.android.FlutterActivity
 // class MainActivity: FlutterActivity() {

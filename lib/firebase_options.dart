@@ -49,14 +49,22 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // Moved from the 'meettheneeds' project to 'myn-sales'. The seller app is
+  // registered there as com.meetyourneeds.seller, and the service-account key
+  // the backend pushes with belongs to that project — an FCM send only reaches
+  // devices registered under the same project as the sender.
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCVJEw7Nsi3GjpF2xUAxhRgviDX_jXWyDE',
-    appId: '1:865321195733:android:ef25c100d1fcdf03456a5c',
-    messagingSenderId: '865321195733',
-    projectId: 'meettheneeds',
-    storageBucket: 'meettheneeds.appspot.com',
+    apiKey: 'AIzaSyB-NcoVOlboGfzoeKGDDtT6FkNsuicjLYU',
+    appId: '1:357882681208:android:c8e62b7bb5e74f8283da8d',
+    messagingSenderId: '357882681208',
+    projectId: 'myn-sales',
+    storageBucket: 'myn-sales.appspot.com',
   );
 
+  // Deliberately still on 'meettheneeds': iOS has no Firebase app in myn-sales
+  // and no APNs key uploaded, so push does not work there yet. These values
+  // match ios/Runner/GoogleService-Info.plist — change both together when the
+  // iOS side is set up.
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDFVXkIzM52E2DawDsDboyKuErRmPYP0ww',
     appId: '1:865321195733:ios:5d687eadb58ceb76456a5c',
