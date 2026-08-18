@@ -598,8 +598,11 @@ class _MynProductDetailState extends State<MynProductDetail> {
   }
 
   Widget _buildSaveBar() {
+    // The extra bottom inset keeps the buttons clear of the gesture handle:
+    // the app draws edge to edge, so this bar sits under the system bar.
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      padding: EdgeInsets.fromLTRB(
+          16, 12, 16, 20 + MediaQuery.of(context).padding.bottom),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: MynPalette.cardBorder)),
