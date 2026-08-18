@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:myn_seller_app/app_config.dart';
-import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/screens/main.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -47,7 +46,7 @@ class _SplashState extends State<Splash> {
   Widget build(BuildContext context) {
     return CustomSplashScreen(
       //comment this
-      seconds: 5,
+      seconds: 2,
       //comment this
       navigateAfterSeconds: Main(),
       // navigateAfterFuture: loadFromFuture(), //uncomment this
@@ -64,11 +63,11 @@ class _SplashState extends State<Splash> {
         style: TextStyle(
           fontWeight: FontWeight.w400,
           fontSize: 14.0,
-          color: Colors.white,
+          color: Color(0xFF5A4300),
         ),
       ),
       backgroundImage: Image.asset(
-        "assets/splashscreen.gif",
+        "assets/splash_myn.jpg",
         fit: BoxFit.cover,
       ),
     );
@@ -245,26 +244,13 @@ class _CustomSplashScreenState extends State<CustomSplashScreen> {
       body: Stack(
         children: <Widget>[
           Positioned.fill(
-            child: widget.backgroundImage != null
-                ? Image.asset(
-                    "assets/splashscreen.gif",
-                    fit: BoxFit.cover,
-                  )
-                : Container(),
+            child: widget.backgroundImage ?? Container(),
           ),
           Positioned.fill(
               child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              SizedBox(height: MediaQuery.of(context).size.height / 4.5),
-              Text(
-                "The Seller",
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 46.0,
-                    color: MyTheme.accent_color),
-              ),
               widget.title!,
               widget.image != null
                   ? Hero(
