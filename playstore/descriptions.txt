@@ -73,15 +73,42 @@ photo scanning and shop open/closed control.
 ================================================================
 DATA SAFETY FORM - what to declare in Play Console
 ================================================================
-Say YES to collecting these, and that they are used for App
-functionality / Account management:
+Declare these as collected, used for App functionality / Account management:
 
   - Name, email address, phone number   (seller account)
-  - Photos                              (menu and product pictures)
+  - Address                             (shop address in Profile)
+  - Photos                              (image_picker: menu and product pictures)
   - Purchase / order history            (orders and earnings)
-  - Approximate location                (only if the app asks for it)
+  - Device or other IDs                 (Firebase Cloud Messaging push token)
+
+THIRD-PARTY SERVICES IN THE APP (name these in the privacy policy):
+  - Firebase Cloud Messaging (Google)   push notifications
+  - MYN backend (safesmilez.com / myn.in.net)
 
 Say YES to "Is data encrypted in transit"  (the app uses HTTPS).
 Say NO  to "Is data shared with third parties" unless you actually do.
 
-Your privacy policy page must list the same things.
+LOCATION - RESOLVED 2026-08-18
+ACCESS_FINE_LOCATION and ACCESS_COARSE_LOCATION were removed from
+AndroidManifest.xml. Nothing in the app ever requested them
+(permission_handler is used only for storage, notifications and photos),
+so the manifest now matches the privacy policy, which does not mention
+GPS.
+
+  Answer NO to Location in the Data safety form.
+
+
+================================================================
+PRIVACY POLICY
+================================================================
+https://www.freeprivacypolicy.com/live/d90eed37-6ef7-41bd-a622-2830f073b8ef
+
+Paste this into Play Console in two places:
+  App content  >  Privacy policy
+  Store listing >  Privacy policy
+
+Contact email shown on the policy: meetheneeeds@gmail.com
+
+The policy declares: email, name, phone, address, IP address, browser
+and device identifiers, camera / photo library, usage and diagnostic
+data. It does NOT declare location - keep the Data safety form matching.
