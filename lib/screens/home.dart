@@ -223,7 +223,6 @@ class _HomeState extends State<Home> {
   Widget buildHeroHeader(BuildContext context) {
     final String name = shopName();
 
-    final String banner = _profile?.bannerUrl ?? "";
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -237,31 +236,6 @@ class _HomeState extends State<Home> {
       ),
       child: Stack(
         children: [
-          // Shop banner sits behind the gradient scrim so the white text keeps
-          // its contrast whatever the artwork looks like.
-          if (banner.isNotEmpty)
-            Positioned.fill(
-              child: CachedNetworkImage(
-                imageUrl: banner,
-                fit: BoxFit.cover,
-                errorWidget: (c, u, e) => const SizedBox.shrink(),
-              ),
-            ),
-          if (banner.isNotEmpty)
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color.fromRGBO(253, 200, 45, 0.93),
-                      Color.fromRGBO(243, 173, 3, 0.96),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 2, 16, 24),
             child: Column(
@@ -640,6 +614,36 @@ class _HomeState extends State<Home> {
   Widget buildNewOrdersSection(BuildContext context) {
     final items = newOrders;
 
+    // Nothing to show gets no card. A card drawn around one line of "there is
+    // nothing here" reads as a component that failed rather than a calm empty
+    // state, so the message just sits on the page.
+    if (!_loading && items.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildSectionTitle("New orders"),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 26),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.inbox_rounded, size: 34, color: MynPalette.muted),
+                  const SizedBox(height: 8),
+                  Text(
+                    _failed
+                        ? "Couldn't load new orders"
+                        : "No new orders right now",
+                    style:
+                        TextStyle(color: MynPalette.muted, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -667,32 +671,14 @@ class _HomeState extends State<Home> {
                       ),
                     ),
                   )
-                : items.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 28),
-                        child: Column(
-                          children: [
-                            Icon(Icons.inbox_rounded,
-                                size: 34, color: MynPalette.muted),
-                            const SizedBox(height: 8),
-                            Text(
-                              _failed
-                                  ? "Couldn't load new orders"
-                                  : "No new orders right now",
-                              style: TextStyle(
-                                  color: MynPalette.muted, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      )
-                    : Column(
-                        children: [
-                          for (int i = 0; i < items.length; i++) ...[
-                            if (i > 0) buildRowDivider(),
-                            buildNewOrderRow(items[i]),
-                          ],
-                        ],
-                      ),
+                : Column(
+                    children: [
+                      for (int i = 0; i < items.length; i++) ...[
+                        if (i > 0) buildRowDivider(),
+                        buildNewOrderRow(items[i]),
+                      ],
+                    ],
+                  ),
           ),
         ),
       ],
