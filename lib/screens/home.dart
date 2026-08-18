@@ -187,7 +187,9 @@ class _HomeState extends State<Home> {
                 if (_failed) buildSummaryError(),
                 buildOrdersSection(context),
                 buildNewOrdersSection(context),
-                SizedBox(height: 28),
+                // Clears the floating nav bar plus the gesture inset, so the
+                // last card is never trapped under either.
+                SizedBox(height: 100 + MediaQuery.of(context).padding.bottom),
               ]),
             ),
           ],

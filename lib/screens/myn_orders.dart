@@ -122,7 +122,9 @@ class _MynOrdersState extends State<MynOrders> {
             ] else if (_data != null)
               SliverToBoxAdapter(child: _buildTotals(_data!)),
             if (_loading)
-              SliverToBoxAdapter(child: SizedBox(height: 90))
+              SliverToBoxAdapter(
+                  child: SizedBox(
+                      height: 90 + MediaQuery.of(context).padding.bottom))
             else if (_error != null)
               SliverFillRemaining(
                 hasScrollBody: false,
@@ -152,7 +154,9 @@ class _MynOrdersState extends State<MynOrders> {
                   childCount: _data!.orders.length,
                 ),
               ),
-              SliverToBoxAdapter(child: SizedBox(height: 90)),
+              SliverToBoxAdapter(
+                  child: SizedBox(
+                      height: 90 + MediaQuery.of(context).padding.bottom)),
             ],
           ],
         ),
