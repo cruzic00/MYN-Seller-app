@@ -110,10 +110,20 @@ class _ProductCardState extends State<ProductCard> {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
+        // MYN stocklist rows are keyed by Mongo _id and have no integer id, so
+        // the legacy ProductDetails screen (which fetches /api/v2/products/{int})
+        // could never load one — it just spun. Route those to the MYN screen and
+        // leave the legacy path for rows that still carry an integer id.
+        final String mongoId = (widget.mongo_id ?? "").trim();
+
         Navigator.push(context, MaterialPageRoute(builder: (context) {
-          return ProductDetails(
-            id: widget.id,
-          );
+          if (mongoId.isNotEmpty) {
+            return MynProductDetail(
+              productId: mongoId,
+              fallbackName: widget.name,
+            );
+          }
+          return ProductDetails(id: widget.id);
         }));
       },
       child: Stack(
