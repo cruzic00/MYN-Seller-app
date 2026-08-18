@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:myn_seller_app/app_config.dart';
 import 'package:myn_seller_app/my_theme.dart';
+import 'package:myn_seller_app/screens/myn_product_detail.dart';
 import 'package:myn_seller_app/screens/product_details.dart';
 import 'package:myn_seller_app/screens/productedit.dart';
 import 'package:toast/toast.dart';
