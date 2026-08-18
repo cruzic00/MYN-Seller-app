@@ -77,6 +77,7 @@ class Product {
     this.mongo_id,
     this.name,
     this.thumbnail_image,
+    this.image_status,
     this.main_price,
     this.stroked_price,
     this.seller_price,
@@ -93,6 +94,10 @@ class Product {
   String? mongo_id;
   String? name;
   String? thumbnail_image;
+
+  /// "None" | "Pending" | "Rejected" - the admin image-review state. A Pending
+  /// picture shows for the seller but is not yet live for customers.
+  String? image_status;
   String? main_price;
   String? stroked_price;
   String? seller_price;
@@ -130,6 +135,7 @@ class Product {
         name: json["productName"] ?? json["foodName"] ?? "",
         thumbnail_image: _absoluteImageUrl(
             _firstNonEmpty([json["imageUrl"], v0["imageUrl"]])),
+        image_status: json["imageStatus"]?.toString(),
         main_price: _formatPrice(appPrice),
         stroked_price: _formatPrice(mrp),
         seller_price: _formatPrice(appPrice),

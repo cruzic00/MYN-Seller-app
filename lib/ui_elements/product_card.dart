@@ -19,6 +19,9 @@ class ProductCard extends StatefulWidget {
   /// API uses for product detail and update calls.
   final String? mongo_id;
   final String? image;
+
+  /// "Pending" while MYN reviews a newly uploaded picture.
+  final String? image_status;
   final String? name;
   final String? stroked_price;
   final String? seller_price;
@@ -30,6 +33,7 @@ class ProductCard extends StatefulWidget {
       this.id,
       this.mongo_id,
       this.image,
+      this.image_status,
       this.name,
       this.stroked_price,
       this.seller_price,
@@ -42,6 +46,9 @@ class ProductCard extends StatefulWidget {
 }
 
 class _ProductCardState extends State<ProductCard> {
+  bool get isImagePending =>
+      (widget.image_status ?? "").toLowerCase() == "pending";
+
   ToggleIsActive() async {
     var post_body = jsonEncode({
       "productId": widget.id,
@@ -127,112 +134,160 @@ class _ProductCardState extends State<ProductCard> {
           return ProductDetails(id: widget.id);
         }));
       },
-      child: Stack(
-        children: [
-          Card(
-            clipBehavior: Clip.antiAliasWithSaveLayer,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.0),
-            ),
-            elevation: 6.0,
-            child: Stack(
-              children: [
-                Container(
-                  width: double.infinity,
-                  height: 400,
-                  color: MyTheme.light_grey,
-                  child: buildThumbnail(),
-                ),
-                Container(
-                  width: double.infinity,
-                  height: 400,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.center,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black26,
-                        Colors.black,
-                      ],
-                    ),
+      child: Card(
+        clipBehavior: Clip.antiAliasWithSaveLayer,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        elevation: 3.0,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Square, to match the web panel's thumbnails. The old card was one
+            // tall image with the text laid over a black gradient, so a dish
+            // photo shot square arrived stretched and half-covered.
+            AspectRatio(
+              aspectRatio: 1,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(
+                    color: MyTheme.light_grey,
+                    child: buildThumbnail(),
                   ),
-                ),
-                Positioned(
-                  bottom: 10,
-                  left: 10,
-                  right: 10,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        widget.name!,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      widget.seller_price != widget.stroked_price
-                          ? Text(
-                              "MRP: ${widget.stroked_price}",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            )
-                          : Container(),
-                      Text(
-                        widget.seller_price!,
-                        style: TextStyle(
-                          color: MyTheme.parrot_green,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                  if (isImagePending)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                                color: const Color(0xFFD98E22), width: 2.5),
+                          ),
                         ),
                       ),
-                      SizedBox(
-                        height: 30,
+                    ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: MyCustomBadge(widget.is_active!),
+                  ),
+                  if (isImagePending)
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFBF1E1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: const Color(0xFFD98E22), width: 1),
+                        ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.push(context,
-                                    MaterialPageRoute(builder: (context) {
-                                  return ProductEdit(
-                                    id: widget.id,
-                                    mongo_id: widget.mongo_id,
-                                  );
-                                }));
-                              },
-                              child: Text('Edit',
-                                  style: TextStyle(color: Colors.black)),
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                backgroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16.0),
-                                ),
+                            Icon(Icons.schedule_rounded,
+                                size: 12, color: const Color(0xFFD98E22)),
+                            const SizedBox(width: 4),
+                            Text(
+                              "Waiting approval",
+                              style: TextStyle(
+                                color: const Color(0xFF8A5B0E),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                ],
+              ),
             ),
-          ),
-          Positioned(
-            top: 18,
-            right: 15,
-            child: MyCustomBadge(widget.is_active!),
-          ),
-        ],
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.name ?? "",
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: MyTheme.font_grey,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.seller_price != widget.stroked_price)
+                                Text(
+                                  widget.stroked_price ?? "",
+                                  style: TextStyle(
+                                    color: MyTheme.medium_grey,
+                                    fontSize: 10.5,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                              Text(
+                                widget.seller_price ?? "",
+                                style: TextStyle(
+                                  color: MyTheme.accent_color,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          height: 30,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (context) {
+                                return ProductEdit(
+                                  id: widget.id,
+                                  mongo_id: widget.mongo_id,
+                                );
+                              }));
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 0),
+                              backgroundColor: MyTheme.light_grey,
+                              minimumSize: Size.zero,
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text('Edit',
+                                style: TextStyle(
+                                    color: MyTheme.font_grey,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
