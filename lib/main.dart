@@ -20,9 +20,14 @@ import 'package:one_context/one_context.dart';
 import 'package:shared_value/shared_value.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  log("BAckground");
   await Firebase.initializeApp();
   print("Background Message Has Come ${message.data}");
+
+  // MYN order pushes carry a `notification` block, so Android draws the tray
+  // entry itself while the app is backgrounded or killed. Drawing a second one
+  // here would show the seller the same order twice.
+  if (message.data['type'] == 'new_order') return;
+
   NotificationService.showCustomNotification(message.data);
 }
 

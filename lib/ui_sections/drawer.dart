@@ -1,3 +1,4 @@
+import 'package:myn_seller_app/ui_elements/notification_card.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:myn_seller_app/app_config.dart';
@@ -88,6 +89,12 @@ class _MainDrawerState extends State<MainDrawer> {
     );
 
     if (confirmed != true || !context.mounted) return;
+
+    // Must run before clearUserData(), which wipes the access token the
+    // request authenticates with. Awaited so the phone is off the shop's
+    // device list before the session goes — otherwise it keeps ringing for
+    // orders belonging to a shop nobody is signed into here any more.
+    await NotificationService.unregisterDevice();
 
     AuthHelper().clearUserData();
 

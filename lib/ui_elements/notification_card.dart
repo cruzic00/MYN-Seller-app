@@ -8,13 +8,19 @@ import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/repositories/delivery_repository.dart';
 import 'package:myn_seller_app/repositories/order_repository.dart';
-import 'package:myn_seller_app/repositories/profile_repositories.dart';
+import 'package:myn_seller_app/repositories/myn_device_token_repository.dart';
+import 'package:myn_seller_app/screens/myn_orders.dart';
 import 'package:myn_seller_app/screens/pending.dart';
 import 'package:one_context/one_context.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:toast/toast.dart';
 
 class NotificationService {
+  /// Must match the `channelId` services/push.service.js sends, otherwise
+  /// Android drops a backgrounded order alert into the low-importance default
+  /// channel and it arrives silently.
+  static const String _orderChannelId = 'new_order';
+
   static final FirebaseMessaging _firebaseMessaging =
       FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin
@@ -43,6 +49,22 @@ class NotificationService {
       settings: initializationSettings,
       onDidReceiveNotificationResponse: _onDidReceiveNotificationResponse,
     );
+
+    // Registered up front so a push that arrives while the app is killed —
+    // drawn by Android itself, not by this plugin — still lands on a
+    // high-importance channel and makes a sound.
+    await _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _orderChannelId,
+            'New orders',
+            description:
+                'Alerts the shop when a customer places an order.',
+            importance: Importance.max,
+          ),
+        );
   }
 
   static Future<void> _setupFirebaseMessaging() async {
@@ -67,29 +89,50 @@ class NotificationService {
     }
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Got a message whilst in the foreground!');
-      print('Message data: ${message.data}');
+      print('Foreground message: ${message.data}');
 
+      if (message.data['type'] == 'new_order') {
+        showCustomNotification(message.data);
+        return;
+      }
+
+      // Legacy Laravel push, kept so an old backend still works.
       if (message.data['message'] != null) {
-        print(
-            'Message also contained a notification: ${message.data['message']}');
         fetchOrderedItems(message.data);
       }
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('A new onMessageOpenedApp event was published!');
-      // Navigate to relevant screen based on the message
+      print('Notification tapped: ${message.data}');
+      _openOrders();
     });
   }
 
+  /// Sends the seller to their orders list. Used both when a tray notification
+  /// is tapped and when the app is already open.
+  static void _openOrders() {
+    final context = OneContext().context;
+    if (context == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => MynOrders(show_back_button: true)),
+    );
+  }
+
   static Future<void> _updateFcmToken(String token) async {
-    if (showNotificationPermissionRequest.$ ||
-        token != showNotificationToken.$) {
-      print("Updating FCM token: $token");
-      await ProfileRepository()
-          .getDeviceTokenUpdateLoginResponse(user_id.$.toString(), token);
-    }
+    // Registered unconditionally rather than only on change: the server holds
+    // tokens as a set, and skipping the call when the token looks unchanged
+    // left sellers unreachable whenever a registration had failed earlier.
+    print("Registering FCM token: $token");
+    await MynDeviceTokenRepository().register(token);
+  }
+
+  /// Drops this phone from the shop's device list. Called on sign-out so a
+  /// handed-over or resold phone stops receiving that shop's orders.
+  static Future<void> unregisterDevice() async {
+    final token = showNotificationToken.$;
+    if (token.isEmpty) return;
+    await MynDeviceTokenRepository().unregister(token);
   }
 
   static Future<bool> isNotificationAllowed() async {
@@ -303,7 +346,9 @@ class NotificationService {
   static fetchOrderedItems(message) async {
     RegExp regExp = RegExp(r'\d+');
     var matches = regExp.allMatches("${message['message']}");
-    print(matches.first.group(0));
+    // Guarded: a payload with no digits in it used to throw on `matches.first`
+    // and take down the rest of the message handler with it.
+    if (matches.isEmpty) return;
     var id = int.tryParse(matches.first.group(0) as String);
     if (id != null) {
       var orderItemResponse = await OrderRepository().getOrderItems(id: id);
@@ -462,9 +507,48 @@ class NotificationService {
 
   static Future<void> showCustomNotification(
       Map<String, dynamic> message) async {
-    RegExp regExp = RegExp(r'\d+');
-    var matches = regExp.allMatches(message['message']);
-    print(matches.first.group(0));
+    // MYN push. Everything the tray entry needs is already in the payload, so
+    // there is no server round-trip here — this also runs in the background
+    // isolate, where no navigator or auth state is available.
+    if (message['type'] == 'new_order') {
+      final bill = (message['billNo'] ?? '').toString();
+      final items = (message['items'] ?? '').toString();
+      final amount = (message['amount'] ?? '').toString();
+      final currency =
+          (message['currency'] ?? 'INR').toString() == 'INR' ? '₹' : '';
+
+      const AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+        _orderChannelId,
+        'New orders',
+        channelDescription: 'Alerts the shop when a customer places an order.',
+        importance: Importance.max,
+        priority: Priority.high,
+      );
+
+      await _flutterLocalNotificationsPlugin.show(
+        id: Random().nextInt(100000),
+        title: 'New order',
+        body: [
+          if (bill.isNotEmpty) 'Bill $bill',
+          if (items.isNotEmpty) '$items item${items == "1" ? "" : "s"}',
+          if (amount.isNotEmpty) '$currency$amount',
+        ].join('  ·  '),
+        notificationDetails:
+            const NotificationDetails(android: androidDetails),
+        payload: 'new_order',
+      );
+
+      NotificationSound(false);
+      return;
+    }
+
+    // Legacy Laravel push: the order id is embedded in a sentence. Guarded
+    // because a payload without a number used to throw on `matches.first`.
+    final text = (message['message'] ?? '').toString();
+    final matches = RegExp(r'\d+').allMatches(text);
+    if (matches.isEmpty) return;
+
     var id = int.tryParse(matches.first.group(0) as String);
     if (id != null) {
       var orderItemResponse = await OrderRepository().getOrderItems(id: id);
@@ -496,14 +580,20 @@ class NotificationService {
   static Future<void> _onDidReceiveNotificationResponse(
       NotificationResponse response) async {
     final String? payload = response.payload;
-    if (payload != null) {
-      print('notification payload: $payload');
-      final context = OneContext().context;
-      if (context != null) {
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => Pending(index: 2),
-        ));
-      }
+    if (payload == null) return;
+
+    print('notification payload: $payload');
+
+    if (payload == 'new_order') {
+      _openOrders();
+      return;
+    }
+
+    final context = OneContext().context;
+    if (context != null) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => Pending(index: 2),
+      ));
     }
   }
 }
