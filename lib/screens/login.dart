@@ -110,40 +110,35 @@ class _LoginState extends State<Login> {
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: _pageYellow,
-        body: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            // Everything scrolls together, so opening the keyboard slides the
-            // artwork up rather than scrolling the card under a pinned image.
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              // IntrinsicHeight gives the Column a real height to divide, which
-              // is what lets the wordmark sit against the bottom of the screen
-              // on a tall phone and simply follow the content on a short one.
-              child: IntrinsicHeight(
-                child: Column(
-                  children: [
-                    // Deliberately outside any SafeArea: the artwork runs under
-                    // the status bar, and its top strip is empty yellow anyway.
-                    Image.asset(
-                      "assets/login_myn.jpg",
-                      width: double.infinity,
-                      fit: BoxFit.fitWidth,
-                    ),
-                    Transform.translate(
-                      offset: const Offset(0, -24),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
-                        child: _buildCard(),
-                      ),
-                    ),
-                    _buildFooter(),
-                    const Spacer(),
-                    _buildWordmark(),
-                    SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-                  ],
+        body: SingleChildScrollView(
+          // Everything scrolls together, so opening the keyboard slides the
+          // artwork up rather than scrolling the card under a pinned image.
+          //
+          // No IntrinsicHeight/Spacer here: IntrinsicHeight asks the artwork for
+          // its natural height (820px) rather than the height it actually
+          // renders at under fitWidth, which pushed the wordmark a screen and a
+          // half below the fold. An explicit height keeps the column honest.
+          child: Column(
+            children: [
+              // Deliberately outside any SafeArea: the artwork runs under the
+              // status bar, and its top strip is empty yellow anyway.
+              SizedBox(
+                width: double.infinity,
+                height: MediaQuery.of(context).size.width * 820 / 941,
+                child: Image.asset("assets/login_myn.jpg", fit: BoxFit.cover),
+              ),
+              Transform.translate(
+                offset: const Offset(0, -24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: _buildCard(),
                 ),
               ),
-            ),
+              _buildFooter(),
+              const SizedBox(height: 10),
+              _buildWordmark(),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 18),
+            ],
           ),
         ),
       ),
@@ -401,7 +396,7 @@ class _LoginState extends State<Login> {
       children: [
         // The logo asset is transparent, so it sits on the yellow directly
         // rather than needing a plate behind it.
-        Image.asset("assets/app_logo.png", width: 92),
+        Image.asset("assets/app_logo.png", width: 78),
         const SizedBox(height: 2),
         Text(
           "Seller Partner App",
