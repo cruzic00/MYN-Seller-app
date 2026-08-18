@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 /// Shared tokens for the redesigned seller screens (dashboard, orders, order
@@ -68,4 +69,22 @@ class MynPalette {
   static final NumberFormat _money = NumberFormat("#,##0.00");
 
   static String money(num v) => "₹${_money.format(v)}";
+
+  /// Dark status-bar icons over a system navigation bar the page shows through.
+  ///
+  /// Use this instead of `SystemUiOverlayStyle.dark`, which hard-codes
+  /// `systemNavigationBarColor` to opaque black — on a gesture-navigation phone
+  /// that painted a black band across the bottom of every screen, below the
+  /// floating nav bar. Transparent lets the scaffold run to the bottom edge, and
+  /// `systemNavigationBarContrastEnforced: false` stops Android from putting its
+  /// own translucent scrim back over it.
+  static const SystemUiOverlayStyle overlayDark = SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+    systemNavigationBarContrastEnforced: false,
+  );
 }

@@ -246,7 +246,7 @@ class _MynProductDetailState extends State<MynProductDetail> {
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: MynPalette.brandYellow,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        systemOverlayStyle: MynPalette.overlayDark,
         iconTheme: IconThemeData(color: MynPalette.onYellow),
       ),
       body: _error != null ? _buildError() : _buildForm(),

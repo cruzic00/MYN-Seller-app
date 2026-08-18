@@ -1,3 +1,4 @@
+import 'package:myn_seller_app/myn_palette.dart';
 import 'dart:io' show Platform;
 
 import 'package:firebase_core/firebase_core.dart';
@@ -81,10 +82,11 @@ main() async {
   });
   //set dummy login data -- end
 
-  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    systemNavigationBarDividerColor: Colors.transparent,
-  ));
+  // Draw under the status and navigation bars. Without this the gesture bar
+  // stayed an opaque strip the page could not reach, so every screen ended in a
+  // black band above the home indicator instead of running to the bottom edge.
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(MynPalette.overlayDark);
   runApp(
     SharedValue.wrapApp(
       MyApp(),

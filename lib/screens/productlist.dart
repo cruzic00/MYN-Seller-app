@@ -1,3 +1,4 @@
+import 'package:myn_seller_app/myn_palette.dart';
 import 'dart:async';
 
 import 'package:empty_widget_fork/empty_widget_fork.dart';
@@ -220,7 +221,7 @@ class _CategoryProductsState extends State<CategoryProducts> {
     return AppBar(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.white,
-      systemOverlayStyle: SystemUiOverlayStyle(statusBarColor: Colors.white),
+      systemOverlayStyle: MynPalette.overlayDark,
       centerTitle: true,
       title: Text(
         "Products",

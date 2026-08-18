@@ -1,3 +1,4 @@
+import 'package:myn_seller_app/myn_palette.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/screens/assigned_delivery.dart';
 import 'package:myn_seller_app/screens/on_the_way_delivery.dart';
@@ -84,7 +85,7 @@ class _PendingState extends State<Pending> with SingleTickerProviderStateMixin {
               fontWeight: FontWeight.bold,
             ),
           ),
-          systemOverlayStyle: SystemUiOverlayStyle.dark,
+          systemOverlayStyle: MynPalette.overlayDark,
           bottom: TabBar(
             controller: _tabController,
             tabs: myTabs,

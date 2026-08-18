@@ -107,7 +107,7 @@ class _LoginState extends State<Login> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // Dark status-bar icons: the artwork sitting behind them is light yellow.
-      value: SystemUiOverlayStyle.dark,
+      value: MynPalette.overlayDark,
       child: Scaffold(
         backgroundColor: _pageYellow,
         body: SingleChildScrollView(

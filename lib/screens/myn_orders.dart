@@ -87,7 +87,7 @@ class _MynOrdersState extends State<MynOrders> {
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: MynPalette.brandYellow,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        systemOverlayStyle: MynPalette.overlayDark,
         automaticallyImplyLeading: widget.show_back_button,
         iconTheme: IconThemeData(color: MynPalette.onYellow),
         actions: [

@@ -1,3 +1,4 @@
+import 'package:myn_seller_app/myn_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_icons_null_safety/flutter_icons_null_safety.dart';
@@ -245,7 +246,7 @@ class _CancelledDeliveryState extends State<CancelledDelivery> {
         style: TextStyle(color: MyTheme.font_grey, fontWeight: FontWeight.bold),
       ),
       surfaceTintColor: Colors.white,
-      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      systemOverlayStyle: MynPalette.overlayDark,
       automaticallyImplyLeading: false,
       actions: [
         new Container(),

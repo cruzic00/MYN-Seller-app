@@ -215,7 +215,7 @@ class _HomeState extends State<Home> {
       titleSpacing: 0,
       backgroundColor: MynPalette.brandYellow,
       scrolledUnderElevation: 0.0,
-      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      systemOverlayStyle: MynPalette.overlayDark,
       centerTitle: true,
     );
   }

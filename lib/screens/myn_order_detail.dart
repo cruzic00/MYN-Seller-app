@@ -96,7 +96,7 @@ class _MynOrderDetailState extends State<MynOrderDetail> {
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: MynPalette.brandYellow,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        systemOverlayStyle: MynPalette.overlayDark,
         iconTheme: IconThemeData(color: MynPalette.onYellow),
       ),
       body: _loading

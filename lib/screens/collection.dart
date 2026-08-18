@@ -1,3 +1,4 @@
+import 'package:myn_seller_app/myn_palette.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -392,7 +393,7 @@ class CollectionState extends State<Collection> {
   AppBar buildAppBar(BuildContext context) {
     return AppBar(
       centerTitle: true,
-      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      systemOverlayStyle: MynPalette.overlayDark,
       surfaceTintColor: Colors.white,
       automaticallyImplyLeading: false,
       leading: Builder(
