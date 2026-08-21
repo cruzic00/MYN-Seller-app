@@ -1,3 +1,4 @@
+import 'dart:typed_data' show Int64List;
 import 'dart:math' show Random;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,17 @@ class NotificationService {
   /// Must match the `channelId` services/push.service.js sends, otherwise
   /// Android drops a backgrounded order alert into the low-importance default
   /// channel and it arrives silently.
-  static const String _orderChannelId = 'new_order';
+  ///
+  /// Versioned because Android freezes a channel's sound, vibration and
+  /// importance the moment it is first created — later edits to the same id are
+  /// ignored for anyone who already has it. Bump the suffix when those settings
+  /// change; the backend's channelId has to be bumped with it.
+  static const String _orderChannelId = 'new_order_v2';
+
+  /// Buzz-pause-buzz. Long enough to feel across a counter, short enough not to
+  /// be a nuisance when several orders land together.
+  static final Int64List _orderVibration =
+      Int64List.fromList(const [0, 500, 200, 500]);
 
   static final FirebaseMessaging _firebaseMessaging =
       FirebaseMessaging.instance;
@@ -58,12 +69,16 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(
-          const AndroidNotificationChannel(
+          AndroidNotificationChannel(
             _orderChannelId,
             'New orders',
             description:
                 'Alerts the shop when a customer places an order.',
             importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+            vibrationPattern: _orderVibration,
+            enableLights: true,
           ),
         );
   }
@@ -522,13 +537,20 @@ class NotificationService {
       final currency =
           (message['currency'] ?? 'INR').toString() == 'INR' ? '₹' : '';
 
-      const AndroidNotificationDetails androidDetails =
+      final AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
         _orderChannelId,
         'New orders',
         channelDescription: 'Alerts the shop when a customer places an order.',
         importance: Importance.max,
         priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        vibrationPattern: _orderVibration,
+        // Heads-up over whatever the seller is doing: an order the shop misses
+        // is worse than an interruption.
+        fullScreenIntent: false,
+        category: AndroidNotificationCategory.message,
       );
 
       await _flutterLocalNotificationsPlugin.show(
@@ -540,7 +562,7 @@ class NotificationService {
           if (amount.isNotEmpty) '$currency$amount',
         ].join('  ·  '),
         notificationDetails:
-            const NotificationDetails(android: androidDetails),
+            NotificationDetails(android: androidDetails),
         payload: 'new_order',
       );
 

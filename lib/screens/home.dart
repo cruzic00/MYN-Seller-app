@@ -63,6 +63,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
     fetchSummary();
     fetchProfile();
+    initializeNotifications();
   }
 
   @override
@@ -182,15 +183,23 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return MynPalette.money(v);
   }
 
+  /// Sets up notifications the first time the dashboard is built after sign-in.
+  ///
+  /// This used to be defined and never called, so NotificationService.initialize
+  /// never ran: no permission was ever requested, no FCM token was fetched, and
+  /// nothing was registered with the backend — which is why order pushes never
+  /// arrived. Calling it here means Android's own permission dialog appears
+  /// right after login rather than the seller having to find a banner.
   Future<void> initializeNotifications() async {
     await NotificationService.initialize();
-    if (showNotificationPermissionRequest.$) {
-      checkNotificationPermission();
-    }
+    await checkNotificationPermission();
   }
 
+  /// The in-app banner is the fallback for a seller who declined the system
+  /// dialog — it is the only way back to the setting from inside the app.
   Future<void> checkNotificationPermission() async {
     bool isAllowed = await NotificationService.isNotificationAllowed();
+    if (!mounted) return;
     setState(() {
       showNotificationPermissionRequest.$ = !isAllowed;
     });
