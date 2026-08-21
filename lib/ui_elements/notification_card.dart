@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:myn_seller_app/custom/toast_component.dart';
+import 'package:myn_seller_app/helpers/order_events.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/repositories/delivery_repository.dart';
@@ -93,6 +94,10 @@ class NotificationService {
 
       if (message.data['type'] == 'new_order') {
         showCustomNotification(message.data);
+        // Wake the mounted screens too. Without this the tray entry appeared
+        // but the dashboard behind it kept showing the old list until the
+        // seller pulled to refresh.
+        OrderEvents.newOrder();
         return;
       }
 

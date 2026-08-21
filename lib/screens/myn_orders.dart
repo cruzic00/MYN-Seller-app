@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myn_seller_app/data_model/myn_order_response.dart';
+import 'package:myn_seller_app/helpers/order_events.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/myn_palette.dart';
 import 'package:myn_seller_app/repositories/order_repository.dart';
@@ -40,17 +42,32 @@ class _MynOrdersState extends State<MynOrders> {
   String? _error;
   MynOrderListResponse? _data;
 
+  StreamSubscription<void>? _orderEvents;
+
   @override
   void initState() {
     super.initState();
+    // A push landing while this list is on screen reloads it in place, so the
+    // seller never has to pull down to see the order they were just told about.
+    _orderEvents = OrderEvents.stream.listen((_) => _fetch(silent: true));
     _fetch();
   }
 
-  Future<void> _fetch() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void dispose() {
+    _orderEvents?.cancel();
+    super.dispose();
+  }
+
+  /// [silent] skips the loading state: a push-driven reload should slot the new
+  /// order in, not replace the list the seller is reading with skeletons.
+  Future<void> _fetch({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       final res = await OrderRepository()
@@ -58,10 +75,14 @@ class _MynOrdersState extends State<MynOrders> {
       if (!mounted) return;
       setState(() {
         _data = res;
+        _error = null;
         _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
+      // A failed background refresh leaves the list that is already on screen
+      // alone; only a refresh the seller asked for reports the error.
+      if (silent) return;
       setState(() {
         _error = e.toString();
         _loading = false;

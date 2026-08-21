@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:myn_seller_app/data_model/myn_order_response.dart';
 import 'package:myn_seller_app/data_model/myn_profile_response.dart';
+import 'package:myn_seller_app/helpers/order_events.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/repositories/myn_profile_repository.dart';
 import 'package:myn_seller_app/screens/myn_order_detail.dart';
@@ -22,7 +24,7 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with WidgetsBindingObserver {
   ScrollController _mainScrollController = ScrollController();
 
   final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
@@ -33,6 +35,16 @@ class _HomeState extends State<Home> {
   MynProfile? _profile;
   final Set<String> _packing = {};
 
+  StreamSubscription<void>? _orderEvents;
+  Timer? _poll;
+
+  /// How often the dashboard re-checks for orders while the app is open.
+  ///
+  /// The push is the fast path, but it only reaches a seller who granted
+  /// notification permission and whose phone has a live FCM connection. This
+  /// poll is the floor: a new order shows up within half a minute either way.
+  static const Duration _pollEvery = Duration(seconds: 30);
+
   @override
   void initState() {
     super.initState();
@@ -42,8 +54,40 @@ class _HomeState extends State<Home> {
       }));
     }
 
+    WidgetsBinding.instance.addObserver(this);
+
+    // A push that lands while the app is open refreshes the list under it.
+    _orderEvents = OrderEvents.stream.listen((_) => _refreshQuietly());
+
+    _startPolling();
+
     fetchSummary();
     fetchProfile();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Orders that arrived while the app was backgrounded were drawn by
+      // Android itself, so onMessage never fired for them — reload on the way
+      // back in rather than trusting the list on screen.
+      _refreshQuietly();
+      _startPolling();
+    } else {
+      _poll?.cancel();
+    }
+  }
+
+  void _startPolling() {
+    _poll?.cancel();
+    _poll = Timer.periodic(_pollEvery, (_) => _refreshQuietly());
+  }
+
+  /// Reloads without the spinner, so a background refresh never blanks a
+  /// dashboard the seller is reading.
+  Future<void> _refreshQuietly() async {
+    if (!mounted) return;
+    await fetchSummary();
   }
 
   /// Logo and banner are only on the user document, so they need their own
@@ -60,6 +104,9 @@ class _HomeState extends State<Home> {
 
   @override
   void dispose() {
+    _poll?.cancel();
+    _orderEvents?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _mainScrollController.dispose();
     super.dispose();
   }
