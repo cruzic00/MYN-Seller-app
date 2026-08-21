@@ -89,20 +89,27 @@ class NotificationService {
       badge: true,
       sound: true,
     );
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('User granted permission');
+    print('Notification permission: ${settings.authorizationStatus}');
 
-      String? token = await _firebaseMessaging.getToken();
+    // Registered whatever the permission answer was. A token exists without
+    // POST_NOTIFICATIONS — that permission governs whether Android *displays*
+    // the alert, not whether the device can receive one. Gating registration on
+    // it meant a seller who granted permission a moment later stayed invisible
+    // to the backend until the next cold start.
+    try {
+      final String? token = await _firebaseMessaging.getToken();
       if (token != null) {
         showNotificationToken.$ = token;
         print('FCM Token: $token');
         await _updateFcmToken(token);
+      } else {
+        print('FCM returned no token');
       }
-
-      FirebaseMessaging.instance.onTokenRefresh.listen(_updateFcmToken);
-    } else {
-      print('User declined or has not accepted permission');
+    } catch (e) {
+      print('FCM token fetch failed: $e');
     }
+
+    FirebaseMessaging.instance.onTokenRefresh.listen(_updateFcmToken);
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Foreground message: ${message.data}');
@@ -144,7 +151,21 @@ class NotificationService {
     // tokens as a set, and skipping the call when the token looks unchanged
     // left sellers unreachable whenever a registration had failed earlier.
     print("Registering FCM token: $token");
-    await MynDeviceTokenRepository().register(token);
+
+    // Retried because this is the single point of failure for order alerts: one
+    // dropped call and the shop is silent until the app is next restarted. The
+    // shop's phone is often on café wifi that comes and goes.
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      final ok = await MynDeviceTokenRepository().register(token);
+      if (ok) {
+        print("FCM token registered with the backend");
+        return;
+      }
+      if (attempt < 3) {
+        await Future.delayed(Duration(seconds: attempt * 3));
+      }
+    }
+    print("FCM token registration failed after 3 attempts");
   }
 
   /// Drops this phone from the shop's device list. Called on sign-out so a
