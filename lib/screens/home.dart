@@ -639,12 +639,46 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     );
   }
 
-  /// Orders still awaiting the seller. Marking one packed moves it to
-  /// "Processing" — the next status in the web panel's vocabulary — after
-  /// which it no longer matches [_isOpen] and drops off this list.
+  /// How far back an order still counts as "new" on the dashboard.
+  ///
+  /// Every open order used to land here, so a shop carrying a backlog saw
+  /// seventeen of them stacked under a heading that promised new ones. The
+  /// count tile above still reports every open order — nothing is hidden, it
+  /// just stops crowding out the one that came in a minute ago.
+  static const Duration _newOrderWindow = Duration(hours: 24);
+
+  /// The most recent orders still awaiting the seller, newest first.
+  ///
+  /// Marking one packed moves it to "Processing" — the next status in the web
+  /// panel's vocabulary — after which it no longer matches [_isOpen] and drops
+  /// off this list.
   List<MynOrder> get newOrders {
     final orders = _summary?.orders ?? const <MynOrder>[];
-    return orders.where((o) => _isOpen(o.status)).toList();
+    final cutoff = DateTime.now().subtract(_newOrderWindow);
+
+    final recent = orders.where((o) {
+      if (!_isOpen(o.status)) return false;
+      // An order with no timestamp is kept rather than silently dropped: a
+      // missing date is a gap in the data, not evidence the order is old.
+      final at = o.createdAt;
+      return at == null || at.isAfter(cutoff);
+    }).toList();
+
+    recent.sort((a, b) {
+      final x = a.createdAt, y = b.createdAt;
+      if (x == null && y == null) return 0;
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return y.compareTo(x);
+    });
+
+    return recent;
+  }
+
+  /// Open orders older than the window — counted, but not listed here.
+  int get _olderOpenCount {
+    final orders = _summary?.orders ?? const <MynOrder>[];
+    return orders.where((o) => _isOpen(o.status)).length - newOrders.length;
   }
 
   Future<void> markPacked(MynOrder order) async {
@@ -694,6 +728,21 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                     style:
                         TextStyle(color: MynPalette.muted, fontSize: 13),
                   ),
+                  // An empty feed with a backlog behind it would read as "no
+                  // work to do", which is the opposite of the truth.
+                  if (!_failed && _olderOpenCount > 0) ...[
+                    const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: _openOrders,
+                      child: Text(
+                        "$_olderOpenCount older order${_olderOpenCount == 1 ? '' : 's'} still open",
+                        style: TextStyle(
+                            color: MyTheme.accent_color,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
