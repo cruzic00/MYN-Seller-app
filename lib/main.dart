@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:myn_seller_app/myn_palette.dart';
 import 'dart:io' show Platform;
 
@@ -10,7 +11,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myn_seller_app/app_config.dart';
 import 'package:myn_seller_app/app_localizations.dart';
 import 'package:myn_seller_app/firebase_options.dart';
-import 'package:myn_seller_app/helpers/auth_helper.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/repositories/auth_repository.dart';
@@ -47,18 +47,28 @@ main() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  // Refreshes the cached profile from the session token.
+  //
+  // POST /get-user-by-access_token is a legacy Laravel route the MYN API does
+  // not have — it answers 404 with an HTML page, parsing that throws, and the
+  // throw escaped as an unhandled exception on every cold start. Wrapped so it
+  // cannot, and deliberately NOT calling clearUserData() on a failure: a 404 or
+  // a dead network is not proof the session expired, and signing the seller out
+  // over one is worse than showing the details login already persisted.
   fetch_user() async {
-    var userByTokenResponse = await AuthRepository().getUserByTokenResponse();
+    try {
+      var userByTokenResponse = await AuthRepository().getUserByTokenResponse();
 
-    if (userByTokenResponse.result == true) {
-      is_logged_in.$ = true;
-      user_id.$ = userByTokenResponse.id;
-      user_name.$ = userByTokenResponse.name;
-      user_email.$ = userByTokenResponse.email;
-      user_phone.$ = userByTokenResponse.phone;
-      avatar_original.$ = userByTokenResponse.avatar_original;
-    } else {
-      AuthHelper().clearUserData();
+      if (userByTokenResponse.result == true) {
+        is_logged_in.$ = true;
+        user_id.$ = userByTokenResponse.id;
+        user_name.$ = userByTokenResponse.name;
+        user_email.$ = userByTokenResponse.email;
+        user_phone.$ = userByTokenResponse.phone;
+        avatar_original.$ = userByTokenResponse.avatar_original;
+      }
+    } catch (e) {
+      log("Profile refresh skipped: $e");
     }
   }
 
