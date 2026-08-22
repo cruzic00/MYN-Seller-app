@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:myn_seller_app/helpers/common_utility.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
-import 'package:myn_seller_app/repositories/auth_repository.dart';
+import 'package:myn_seller_app/repositories/myn_shop_status_repository.dart';
 import 'package:myn_seller_app/helpers/root_scaffold.dart';
 import 'package:myn_seller_app/ui_elements/magic_nav_bar.dart';
 import 'package:myn_seller_app/ui_sections/drawer.dart';
@@ -46,18 +46,16 @@ class _MainState extends State<Main> {
     });
   }
 
+  /// Loads the shop's open/closed state once per launch.
+  ///
+  /// A null answer means the server could not be asked, not that the shop is
+  /// shut. The old call treated every failure as closed, which is how a seller
+  /// with a flaky connection ended up looking shut to customers.
   Future<void> fetchShowStatus() async {
-    var showStatusResponse = await AuthRepository().getShowStatusResponse();
+    final open = await MynShopStatusRepository().fetch();
+    if (open == null || !mounted) return;
 
-    if (showStatusResponse == 1) {
-      setState(() {
-        shop_active.$ = true;
-      });
-    } else {
-      setState(() {
-        shop_active.$ = false;
-      });
-    }
+    setState(() => shop_active.$ = open);
   }
 
   @override

@@ -43,56 +43,6 @@ class AuthRepository {
     }
   }
 
-  Future<int> getShowStatusResponse() async {
-    try {
-      if (user_id.$ == 0) {
-        throw Exception('Failed to get User');
-      }
-      final response = await http.get(
-        Uri.parse(
-            "${AppConfig.BASE_URL}/${AppConfig.DELIVERY_PREFIX}/shopstatus?user_id=${user_id.$}"),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${access_token.$}",
-          "X-Requested-With": "XMLHttpRequest"
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final responseBody = json.decode(response.body);
-        return responseBody["shop_active"] ?? 0; // Default to 0 if null
-      } else {
-        throw Exception('Failed to load show status: ${response.body}');
-      }
-    } catch (e) {
-      print('Error: $e');
-      return 0; // Default to 0 in case of error
-    }
-  }
-
-  Future<bool> changeStatusResponse(bool status) async {
-    try {
-      final response = await http.get(
-        Uri.parse(
-            "${AppConfig.BASE_URL}/${AppConfig.DELIVERY_PREFIX}/shopstatus?user_id=${user_id.$}&shop_active=${status ? 1 : 0}"),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${access_token.$}",
-          "X-Requested-With": "XMLHttpRequest"
-        },
-      );
-
-      if (response.statusCode == 200) {
-        return status;
-      } else {
-        throw Exception('Failed to change status: ${response.body}');
-      }
-    } catch (e) {
-      print('Error: $e');
-      return !status; // Return the opposite status in case of error
-    }
-  }
-
   Future<LogoutResponse> getLogoutResponse() async {
     try {
       final response = await http.get(

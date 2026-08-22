@@ -12,7 +12,7 @@ import 'package:myn_seller_app/repositories/myn_profile_repository.dart';
 import 'package:myn_seller_app/screens/myn_order_detail.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/myn_palette.dart';
-import 'package:myn_seller_app/repositories/auth_repository.dart';
+import 'package:myn_seller_app/repositories/myn_shop_status_repository.dart';
 import 'package:myn_seller_app/repositories/order_repository.dart';
 import 'package:myn_seller_app/screens/login.dart';
 import 'package:myn_seller_app/screens/myn_orders.dart';
@@ -34,6 +34,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   MynOrderListResponse? _summary;
   MynProfile? _profile;
   final Set<String> _packing = {};
+
+  /// True while PATCH /business/shop-status is in flight, so the switch cannot
+  /// be tapped twice and land on whichever answer returns last.
+  bool _shopStatusBusy = false;
 
   StreamSubscription<void>? _orderEvents;
   Timer? _poll;
@@ -161,11 +165,31 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return name[0].toUpperCase() + name.substring(1);
   }
 
+  /// Optimistic: the switch moves at once, then falls back if the server did
+  /// not take it. A seller closing at the end of a shift should not be left
+  /// watching a spinner, but must never be told the shop is shut when it is not.
   Future<void> toggleShopStatus(bool value) async {
-    setState(() => shop_active.$ = value);
-    final result = await AuthRepository().changeStatusResponse(shop_active.$);
+    if (_shopStatusBusy) return;
+
+    final bool previous = shop_active.$;
+    setState(() {
+      shop_active.$ = value;
+      _shopStatusBusy = true;
+    });
+
+    final confirmed = await MynShopStatusRepository().update(value);
     if (!mounted) return;
-    setState(() => shop_active.$ = result);
+
+    setState(() {
+      shop_active.$ = confirmed ?? previous;
+      _shopStatusBusy = false;
+    });
+
+    if (confirmed == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't change the shop status")),
+      );
+    }
   }
 
   int _countWhere(bool Function(String status) test) {
@@ -372,29 +396,30 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   /// Shop open/closed lives here rather than buried in the drawer, so the
   /// seller can see and flip it without leaving the dashboard.
+  ///
+  /// A sliding switch rather than a tappable chip: the chip only ever named the
+  /// current state, so there was nothing to say it could be changed at all, and
+  /// no feedback while the call was in flight. The thumb slides on tap, the
+  /// track colours the state, and the whole pill stays tappable.
   Widget buildShopStatusToggle() {
     final bool open = shop_active.$;
+    final Color accent = open ? const Color(0xFF1B7F3B) : const Color(0xFFB33A26);
 
     return Material(
       color: Color.fromRGBO(74, 54, 0, open ? 0.14 : 0.08),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => toggleShopStatus(!open),
+        // Held during the request so a double tap cannot queue two opposite
+        // changes and leave the shop in whichever one happened to land last.
+        onTap: _shopStatusBusy ? null : () => toggleShopStatus(!open),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 7, 12, 7),
+          padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                height: 8,
-                width: 8,
-                decoration: BoxDecoration(
-                  color: open ? Color(0xFF1B7F3B) : Color(0xFFB33A26),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 7),
+              _buildSwitchTrack(open, accent),
+              const SizedBox(width: 8),
               Text(
                 open ? "Open" : "Closed",
                 style: TextStyle(
@@ -404,6 +429,43 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Hand-drawn rather than a Material Switch: Switch brings its own 48pt tap
+  /// target and outer padding, which would have blown the pill out of the
+  /// header row.
+  Widget _buildSwitchTrack(bool open, Color accent) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      height: 18,
+      width: 32,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: _shopStatusBusy ? 0.35 : 1),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: AnimatedAlign(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        alignment: open ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          height: 14,
+          width: 14,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: _shopStatusBusy
+              ? Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 1.6, color: accent),
+                )
+              : null,
         ),
       ),
     );
