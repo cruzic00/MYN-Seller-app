@@ -5,6 +5,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:myn_seller_app/data_model/myn_order_response.dart';
 import 'package:myn_seller_app/data_model/myn_profile_response.dart';
 import 'package:myn_seller_app/helpers/order_events.dart';
+import 'package:myn_seller_app/helpers/root_scaffold.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/repositories/myn_profile_repository.dart';
 import 'package:myn_seller_app/screens/myn_order_detail.dart';
@@ -16,8 +18,6 @@ import 'package:myn_seller_app/screens/login.dart';
 import 'package:myn_seller_app/screens/myn_orders.dart';
 import 'package:myn_seller_app/ui_elements/notification_card.dart';
 import 'package:myn_seller_app/ui_elements/skeleton.dart';
-import 'package:myn_seller_app/ui_sections/drawer.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -192,26 +192,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   /// right after login rather than the seller having to find a banner.
   Future<void> initializeNotifications() async {
     await NotificationService.initialize();
-    await checkNotificationPermission();
-  }
-
-  /// The in-app banner is the fallback for a seller who declined the system
-  /// dialog — it is the only way back to the setting from inside the app.
-  Future<void> checkNotificationPermission() async {
-    bool isAllowed = await NotificationService.isNotificationAllowed();
-    if (!mounted) return;
-    setState(() {
-      showNotificationPermissionRequest.$ = !isAllowed;
-    });
-  }
-
-  Future<void> requestNotificationPermission() async {
-    await NotificationService.requestNotificationPermission();
-    bool granted = await Permission.notification.isGranted;
-
-    setState(() {
-      if (granted) showNotificationPermissionRequest.$ = false;
-    });
   }
 
   void _openOrders() {
@@ -233,8 +213,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           controller: _mainScrollController,
           physics: AlwaysScrollableScrollPhysics(),
           slivers: [
-            if (showNotificationPermissionRequest.$)
-              SliverToBoxAdapter(child: buildNotificationPermissionRequest()),
             if (!is_updated_version.$)
               SliverToBoxAdapter(child: updateAppNotification()),
             SliverList(
@@ -252,8 +230,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         ),
       ),
       appBar: buildAppBar(context, _scaffoldKey),
-      drawer: MainDrawer(),
-      drawerEdgeDragWidth: MediaQuery.of(context).size.width,
     );
   }
 
@@ -264,7 +240,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           fontSize: 20, fontWeight: FontWeight.w700, color: MynPalette.onYellow),
       leading: IconButton(
         onPressed: () {
-          _scaffoldKey.currentState!.openDrawer();
+          openRootDrawer();
         },
         icon: Icon(Icons.menu_rounded, size: 26, color: MynPalette.onYellow),
       ),
@@ -885,6 +861,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     );
   }
 
+  /// The Update action used to be wired to requestNotificationPermission — a
+  /// leftover from when the two banners were copied from one another. Sends the
+  /// seller to the store listing instead.
+  Future<void> _openStoreListing() async {
+    final uri = Uri.parse(
+        "https://play.google.com/store/apps/details?id=com.meetyoureneeds.seller");
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   Widget updateAppNotification() {
     return buildBanner(
       message:
@@ -892,17 +877,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       actionLabel: "Update",
       color: MynPalette.amber,
       tint: MynPalette.amberTint,
-      onPressed: requestNotificationPermission,
-    );
-  }
-
-  Widget buildNotificationPermissionRequest() {
-    return buildBanner(
-      message: "Allow notifications for smooth app functioning",
-      actionLabel: "Allow",
-      color: MynPalette.red,
-      tint: MynPalette.redTint,
-      onPressed: requestNotificationPermission,
+      onPressed: _openStoreListing,
     );
   }
 

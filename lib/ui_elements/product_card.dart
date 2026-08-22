@@ -6,7 +6,6 @@ import 'package:myn_seller_app/app_config.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/screens/myn_product_detail.dart';
 import 'package:myn_seller_app/screens/product_details.dart';
-import 'package:myn_seller_app/screens/productedit.dart';
 import 'package:toast/toast.dart';
 
 import '../custom/toast_component.dart';
@@ -28,6 +27,13 @@ class ProductCard extends StatefulWidget {
   final bool? has_discount;
   bool? is_active;
 
+  /// Fired after the detail screen reports a save, so the grid the card sits in
+  /// can refetch. The card used to carry its own Edit button next to the price;
+  /// tapping the card already opens the same editable detail screen, so the
+  /// button was a second door to one room — and neither door refreshed the
+  /// grid, which is why an edited price kept showing the old value.
+  final VoidCallback? onChanged;
+
   ProductCard(
       {Key? key,
       this.id,
@@ -38,7 +44,8 @@ class ProductCard extends StatefulWidget {
       this.stroked_price,
       this.seller_price,
       this.is_active,
-      this.has_discount})
+      this.has_discount,
+      this.onChanged})
       : super(key: key);
 
   @override
@@ -132,7 +139,9 @@ class _ProductCardState extends State<ProductCard> {
             );
           }
           return ProductDetails(id: widget.id);
-        }));
+        })).then((changed) {
+          if (changed == true) widget.onChanged?.call();
+        });
       },
       child: Card(
         clipBehavior: Clip.antiAliasWithSaveLayer,
@@ -248,36 +257,6 @@ class _ProductCardState extends State<ProductCard> {
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-                        SizedBox(
-                          height: 30,
-                          child: TextButton(
-                            onPressed: () {
-                              Navigator.push(context,
-                                  MaterialPageRoute(builder: (context) {
-                                return ProductEdit(
-                                  id: widget.id,
-                                  mongo_id: widget.mongo_id,
-                                );
-                              }));
-                            },
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 0),
-                              backgroundColor: MyTheme.light_grey,
-                              minimumSize: Size.zero,
-                              tapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text('Edit',
-                                style: TextStyle(
-                                    color: MyTheme.font_grey,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600)),
                           ),
                         ),
                       ],

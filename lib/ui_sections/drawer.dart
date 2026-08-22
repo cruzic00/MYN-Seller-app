@@ -169,7 +169,10 @@ class _MainDrawerState extends State<MainDrawer> {
           buildHeader(context),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+              // Clears the gesture bar: the panel now draws edge-to-edge, so a
+              // fixed bottom pad left Logout half under the home indicator.
+              padding: EdgeInsets.fromLTRB(
+                  12, 16, 12, 12 + MediaQuery.of(context).padding.bottom),
               children: [
                 sectionLabel("Manage"),
                 for (final item in items)

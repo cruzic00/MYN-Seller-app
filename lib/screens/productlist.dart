@@ -6,13 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:myn_seller_app/app_localizations.dart';
+import 'package:myn_seller_app/helpers/root_scaffold.dart';
 import 'package:myn_seller_app/helpers/shimmer_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/repositories/product_repository.dart';
 import 'package:myn_seller_app/screens/menu_scan.dart';
 import 'package:myn_seller_app/screens/productadd.dart';
 import 'package:myn_seller_app/ui_elements/product_card.dart';
-import 'package:myn_seller_app/ui_sections/drawer.dart';
 
 class CategoryProducts extends StatefulWidget {
   CategoryProducts({Key? key, this.show_back_button = false}) : super(key: key);
@@ -117,9 +117,6 @@ class _CategoryProductsState extends State<CategoryProducts> {
             key: _scaffoldKey,
             backgroundColor: Colors.white,
             appBar: buildAppBar(context),
-            drawer: MainDrawer(),
-            drawerEdgeDragWidth:
-                widget.show_back_button ? 0 : MediaQuery.of(context).size.width,
             floatingActionButton: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -235,7 +232,7 @@ class _CategoryProductsState extends State<CategoryProducts> {
             )
           : GestureDetector(
               onTap: () {
-                _scaffoldKey.currentState!.openDrawer();
+                openRootDrawer();
               },
               child: Icon(
                 Icons.menu,
@@ -292,7 +289,10 @@ class _CategoryProductsState extends State<CategoryProducts> {
                   stroked_price: _productList[index].stroked_price,
                   seller_price: _productList[index].seller_price,
                   has_discount: _productList[index].has_discount,
-                  is_active: _productList[index].is_active);
+                  is_active: _productList[index].is_active,
+                  // A save on the detail screen pops true; refetch so the edited
+                  // name, price and status show here straight away.
+                  onChanged: _onRefresh);
             },
           ),
         ),

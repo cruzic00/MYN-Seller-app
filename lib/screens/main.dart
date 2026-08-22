@@ -5,7 +5,9 @@ import 'package:internet_connection_checker_plus/internet_connection_checker_plu
 import 'package:myn_seller_app/helpers/common_utility.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/repositories/auth_repository.dart';
+import 'package:myn_seller_app/helpers/root_scaffold.dart';
 import 'package:myn_seller_app/ui_elements/magic_nav_bar.dart';
+import 'package:myn_seller_app/ui_sections/drawer.dart';
 import 'package:myn_seller_app/screens/home.dart';
 import 'package:myn_seller_app/screens/login.dart';
 import 'package:myn_seller_app/screens/myn_orders.dart';
@@ -152,7 +154,14 @@ class _MainState extends State<Main> {
       onPopInvokedWithResult: (didPop, _) => onPopInvoked(didPop, context),
       child: access_token.$!.isNotEmpty
           ? Scaffold(
+              key: rootScaffoldKey,
               extendBody: true,
+              // The side panel belongs to this Scaffold, not to each tab's own.
+              // A Scaffold paints its drawer above its bottomNavigationBar, so
+              // hosting it here stops the floating nav bar from sitting on top
+              // of the open panel.
+              drawer: MainDrawer(),
+              drawerEdgeDragWidth: MediaQuery.of(context).size.width,
               // IndexedStack, not _children[_currentIndex]: indexing tore the
               // other two tabs out of the tree, so every switch disposed their
               // state and re-ran their network fetch. Keeping all three mounted
