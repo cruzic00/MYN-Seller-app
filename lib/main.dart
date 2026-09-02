@@ -85,6 +85,7 @@ main() async {
   seller_uid.load();
   seller_username.load();
   seller_role.load();
+  seller_business_category.load();
 
   print('is login ${is_logged_in.$}');
   access_token.load().whenComplete(() {

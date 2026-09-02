@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:myn_seller_app/helpers/common_utility.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
+import 'package:myn_seller_app/helpers/tab_events.dart';
 import 'package:myn_seller_app/repositories/myn_shop_status_repository.dart';
 import 'package:myn_seller_app/helpers/root_scaffold.dart';
 import 'package:myn_seller_app/ui_elements/magic_nav_bar.dart';
@@ -44,6 +45,9 @@ class _MainState extends State<Main> {
     setState(() {
       _currentIndex = i;
     });
+    // The tabs stay mounted, so the one coming to the front has to be told to
+    // look again — otherwise it shows whatever it loaded when first opened.
+    TabEvents.selected(i);
   }
 
   /// Loads the shop's open/closed state once per launch.

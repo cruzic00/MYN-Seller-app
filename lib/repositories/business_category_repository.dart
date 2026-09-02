@@ -71,27 +71,54 @@ ShopCategory? matchShopCategory(List<ShopCategory> categories, String scanned) {
 
 class BusinessCategoryRepository {
   /// GET /api/business/business-categories/:uid
+  ///
+  /// Tries each identifier the seller was issued at login. The route resolves
+  /// :uid through findUserIdString and answers 403 "You can only manage your
+  /// own catalog" for one it does not recognise as this seller — and for some
+  /// accounts the stored uid is the shop_order_gen_field, which it does not.
+  /// The old code took any non-200 as "this shop has no categories", so that
+  /// 403 arrived as a silently empty dropdown.
   Future<List<ShopCategory>> getCategories() async {
-    final uid = ProductRepository.sellerIdentifier();
-    final uri = Uri.parse(
-        "${AppConfig.MYN_BASE_URL}/business/business-categories/$uid");
+    Object? lastError;
 
-    final response = await http.get(uri, headers: {
-      "Authorization": "Bearer ${access_token.$}",
-    });
+    for (final uid in ProductRepository.sellerIdentifiers()) {
+      final uri = Uri.parse(
+          "${AppConfig.MYN_BASE_URL}/business/business-categories/${Uri.encodeComponent(uid)}");
 
-    log("GET $uri -> ${response.statusCode}");
+      try {
+        final response = await http
+            .get(uri, headers: {"Authorization": "Bearer ${access_token.$}"})
+            .timeout(const Duration(seconds: 20));
 
-    if (response.statusCode != 200) return [];
+        log("GET $uri -> ${response.statusCode}");
 
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final data = (body["data"] as Map<String, dynamic>?) ?? const {};
-    final raw = (data["categories"] as List?) ?? const [];
+        // 403 means this identifier is not the one the route accepts for this
+        // seller; the next one may be. Any other failure is worth reporting.
+        if (response.statusCode == 403) continue;
+        if (response.statusCode != 200) {
+          lastError = "Categories unavailable (${response.statusCode})";
+          continue;
+        }
 
-    return raw
-        .whereType<Map<String, dynamic>>()
-        .map(ShopCategory.fromJson)
-        .where((c) => c.name.isNotEmpty)
-        .toList();
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final data = (body["data"] as Map<String, dynamic>?) ?? const {};
+        final raw = (data["categories"] as List?) ?? const [];
+
+        final categories = raw
+            .whereType<Map<String, dynamic>>()
+            .map(ShopCategory.fromJson)
+            .where((c) => c.name.isNotEmpty)
+            .toList();
+
+        // An empty list from an identifier the server accepted is a real
+        // answer: this shop has no categories yet.
+        return categories;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+
+    if (lastError != null) throw Exception(lastError.toString());
+    return [];
   }
 }

@@ -112,6 +112,25 @@ class ProductRepository {
   /// Identifier the MYN online-shop API accepts for a seller. Its handlers
   /// match `_id`, `uid`, `username` or `email`, so fall through the ones we
   /// stored at login until a non-empty value is found.
+  /// Every identifier this seller might be addressed by, best first.
+  ///
+  /// The Node routes resolve `:uid` through findUserIdString and answer 403 for
+  /// one they do not tie to this seller. Which of the three works varies by
+  /// account — some are issued a uid equal to their username, others the
+  /// shop_order_gen_field, which most routes reject — so a caller that can
+  /// retry should walk this list rather than trust the first.
+  static List<String> sellerIdentifiers() {
+    final seen = <String>{};
+    for (final candidate in [
+      seller_uid.$,
+      seller_mongo_id.$,
+      seller_username.$
+    ]) {
+      if (candidate != null && candidate.isNotEmpty) seen.add(candidate);
+    }
+    return seen.toList();
+  }
+
   static String sellerIdentifier() {
     for (final candidate in [seller_uid.$, seller_mongo_id.$, seller_username.$]) {
       if (candidate != null && candidate.isNotEmpty) return candidate;

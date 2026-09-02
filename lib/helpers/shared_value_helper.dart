@@ -102,3 +102,32 @@ final SharedValue<String?> user_phone = SharedValue(
   key: "user_phone", // disk storage key for shared_preferences
   autosave: true, // autosave to shared prefs when value changes
 );
+
+/// The seller's businessCategory, cached from GET /api/auth/me.
+///
+/// Decides which product form the app shows: a restaurant edits dishes with
+/// portions and addons, a hypermarket edits stock lines with supplier price and
+/// GST. The server draws the same line — routes/businessDataRoutes.js matches
+/// businessCategory against a food keyword list to pick RestaurantSellerProduct
+/// over SellerProduct — so the app must use the same list, kept in
+/// isFoodBusiness() below.
+final SharedValue<String?> seller_business_category = SharedValue(
+  value: "",
+  key: "seller_business_category", // disk storage key for shared_preferences
+  autosave: true, // autosave to shared prefs when value changes
+);
+
+/// Mirrors `foodKeywords` in routes/businessDataRoutes.js. If the two ever drift
+/// the app would offer portions on an item the server files as a stock line.
+bool isFoodBusiness() {
+  const foodKeywords = [
+    "restaurant",
+    "hotal",
+    "hotel",
+    "bakery",
+    "cafe",
+    "home food",
+  ];
+  final category = (seller_business_category.$ ?? "").toLowerCase();
+  return foodKeywords.any(category.contains);
+}

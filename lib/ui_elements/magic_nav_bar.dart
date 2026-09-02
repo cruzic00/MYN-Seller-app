@@ -68,6 +68,11 @@ class MagicNavBar extends StatelessWidget {
     final bool selected = index == currentIndex;
 
     return Flexible(
+      // The selected tab carries a label as well as an icon, so an equal third
+      // of the bar is not enough for it — "Dashboard" ran 6 pixels past its
+      // slot. Weighting it double gives the pill the room it needs and leaves
+      // the two bare icons comfortable.
+      flex: selected ? 2 : 1,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => onTap(index),
@@ -103,15 +108,21 @@ class MagicNavBar extends StatelessWidget {
                 ),
                 if (selected) ...[
                   const SizedBox(width: 8),
-                  Text(
+                  // Flexible, because AnimatedSize animates the pill's width from
+                  // the collapsed size: mid-flight the label is wider than the
+                  // slot it is growing into, and an unyielding Text overflowed by
+                  // a few pixels every time a tab was selected.
+                  Flexible(
+                    child: Text(
                     item.label,
                     maxLines: 1,
-                    overflow: TextOverflow.clip,
+                    overflow: TextOverflow.fade,
                     softWrap: false,
                     style: TextStyle(
                       color: MyTheme.accent_color,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
+                    ),
                     ),
                   ),
                 ],

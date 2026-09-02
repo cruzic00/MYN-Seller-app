@@ -101,7 +101,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     try {
       final p = await MynProfileRepository().getMyProfile();
       if (!mounted) return;
-      setState(() => _profile = p);
+      setState(() {
+        _profile = p;
+        // Cached so the product form knows which fields to show without
+        // waiting on its own profile call.
+        seller_business_category.$ = p.businessCategory;
+      });
     } catch (e) {
       print("Profile fetch failed: $e");
     }

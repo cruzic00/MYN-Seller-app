@@ -7,11 +7,12 @@ import 'package:flutter/services.dart';
 
 import 'package:myn_seller_app/app_localizations.dart';
 import 'package:myn_seller_app/helpers/root_scaffold.dart';
+import 'package:myn_seller_app/helpers/tab_events.dart';
 import 'package:myn_seller_app/helpers/shimmer_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/repositories/product_repository.dart';
 import 'package:myn_seller_app/screens/menu_scan.dart';
-import 'package:myn_seller_app/screens/productadd.dart';
+import 'package:myn_seller_app/screens/myn_product_detail.dart';
 import 'package:myn_seller_app/ui_elements/product_card.dart';
 
 class CategoryProducts extends StatefulWidget {
@@ -23,7 +24,8 @@ class CategoryProducts extends StatefulWidget {
   _CategoryProductsState createState() => _CategoryProductsState();
 }
 
-class _CategoryProductsState extends State<CategoryProducts> {
+class _CategoryProductsState extends State<CategoryProducts>
+    with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
 
   ScrollController _scrollController = ScrollController();
@@ -36,14 +38,24 @@ class _CategoryProductsState extends State<CategoryProducts> {
   int? _totalData = 0;
   bool _showLoadingContainer = false;
 
+  StreamSubscription<int>? _tabEvents;
+
   String? selectedValue;
   List<String> items = [];
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     fetchData();
+
+    // Approving an image or editing a price happens in the web panel, not here.
+    // The tab stays mounted for the life of the app, so without these two the
+    // grid kept showing whatever it loaded on first open — a "Waiting approval"
+    // badge stayed up long after the image had been approved.
+    _tabEvents = TabEvents.stream.listen((index) {
+      if (index == 2 && mounted) _silentRefresh();
+    });
 
     _xcrollController.addListener(() {
       if (_xcrollController.position.pixels ==
@@ -57,15 +69,44 @@ class _CategoryProductsState extends State<CategoryProducts> {
     });
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _silentRefresh();
+  }
+
   void fetchData() async {
     var productResponse =
         await ProductRepository().getCategoryProducts(page: _page);
+    if (!mounted) return;
     _productList.addAll(productResponse.products!);
     _isInitial = false;
     _totalData = productResponse.meta!.total;
     _showLoadingContainer = false;
 
     setState(() {});
+  }
+
+  /// Refetches without emptying the grid first.
+  ///
+  /// reset() blanks the list, which drops the seller back to a shimmer every
+  /// time they switch tabs. Here the old rows stay on screen until the new ones
+  /// land, so a background refresh is invisible unless something actually
+  /// changed.
+  Future<void> _silentRefresh() async {
+    try {
+      final response = await ProductRepository().getCategoryProducts(page: 1);
+      if (!mounted) return;
+      setState(() {
+        _productList = List<dynamic>.from(response.products ?? const []);
+        _totalData = response.meta?.total ?? _productList.length;
+        _isInitial = false;
+        _page = 1;
+        _showLoadingContainer = false;
+      });
+    } catch (_) {
+      // A failed background refresh leaves what is already on screen; the
+      // seller can still pull to refresh and see the error path.
+    }
   }
 
   void reset() {
@@ -105,6 +146,8 @@ class _CategoryProductsState extends State<CategoryProducts> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _tabEvents?.cancel();
     _scrollController.dispose();
     _xcrollController.dispose();
     super.dispose();
@@ -155,8 +198,13 @@ class _CategoryProductsState extends State<CategoryProducts> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => ProductAdd()),
-                    );
+                      MaterialPageRoute(
+                          builder: (context) => MynProductDetail.create()),
+                    ).then((added) {
+                      // The new item only exists on the server; refetch so it
+                      // appears without the seller pulling to refresh.
+                      if (added == true) _onRefresh();
+                    });
                   },
                 ),
               ],

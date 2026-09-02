@@ -37,6 +37,43 @@ class MynProductRepository {
     return MynProduct.fromJson(product);
   }
 
+  /// POST /api/business/business-stocklist
+  ///
+  /// Creates one standalone item — the same call the menu scanner makes for an
+  /// approved row. The shop is keyed off `bywhom`, and the endpoint works out
+  /// restaurant vs hypermarket from the seller's businessCategory, so the app
+  /// does not have to. Returns the new Mongo _id, or "" if the reply omitted it.
+  Future<String> createProduct(Map<String, dynamic> product) async {
+    final uri =
+        Uri.parse("${AppConfig.MYN_BASE_URL}/business/business-stocklist");
+
+    final response = await http.post(
+      uri,
+      headers: {
+        "Authorization": "Bearer ${access_token.$}",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "bywhom": ProductRepository.sellerIdentifier(),
+        ...product,
+      }),
+    );
+
+    log("POST $uri -> ${response.statusCode}");
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(_messageFrom(response.body, response.statusCode));
+    }
+
+    try {
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = (body["data"] as Map<String, dynamic>?) ?? const {};
+      final item = data["stockItem"];
+      if (item is Map && item["_id"] != null) return item["_id"].toString();
+    } catch (_) {}
+    return "";
+  }
+
   /// PATCH /api/business/business-stocklist/:uid/:productId
   ///
   /// The endpoint takes a flat patch and does the rest itself: it keeps
