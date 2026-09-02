@@ -7,7 +7,6 @@ import 'package:myn_seller_app/helpers/auth_helper.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/myn_palette.dart';
-import 'package:myn_seller_app/screens/collection.dart';
 import 'package:myn_seller_app/screens/download_report.dart';
 import 'package:myn_seller_app/screens/login.dart';
 import 'package:myn_seller_app/screens/myn_orders.dart';
@@ -149,12 +148,6 @@ class _MainDrawerState extends State<MainDrawer> {
         tint: MynPalette.greenTint,
       ),
       _DrawerEntry(
-        title: 'My Collection',
-        icon: Icons.account_balance_wallet_rounded,
-        color: MynPalette.amber,
-        tint: MynPalette.amberTint,
-      ),
-      _DrawerEntry(
         title: 'Download Report',
         icon: Icons.download_rounded,
         color: MynPalette.blue,
@@ -221,8 +214,6 @@ class _MainDrawerState extends State<MainDrawer> {
         return MynOrders(show_back_button: true);
       case 'Product List':
         return CategoryProducts(show_back_button: true);
-      case 'My Collection':
-        return Collection(show_back_button: true);
       case 'Download Report':
         return DownloadReportScreen();
     }

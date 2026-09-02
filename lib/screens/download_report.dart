@@ -5,12 +5,11 @@ import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:myn_seller_app/custom/toast_component.dart';
-import 'package:myn_seller_app/data_model/download_report_response.dart';
+import 'package:myn_seller_app/data_model/myn_order_response.dart';
 import 'package:myn_seller_app/my_theme.dart';
-import 'package:myn_seller_app/repositories/download_report.dart';
+import 'package:myn_seller_app/repositories/order_repository.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:toast/toast.dart';
 import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
@@ -28,6 +27,10 @@ class _DownloadReportScreenState extends State<DownloadReportScreen> {
   final _toDateController = TextEditingController();
   final _dateFormat = DateFormat('yyyy-MM-dd');
   List<FileSystemEntity> _files = [];
+
+  /// True while the range is being fetched and written, so the button can say
+  /// so instead of looking like nothing happened.
+  bool _building = false;
 
   @override
   void initState() {
@@ -61,7 +64,6 @@ class _DownloadReportScreenState extends State<DownloadReportScreen> {
     }
 
   Future<void> _submit() async {
-    await Permission.storage.request();
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -81,50 +83,103 @@ class _DownloadReportScreenState extends State<DownloadReportScreen> {
     final formattedFromDate = _dateFormat.format(fromDate);
     final formattedToDate = _dateFormat.format(toDate);
 
+    setState(() => _building = true);
     try {
-      final data = await OrderRepository()
-          .getOrderReports(formattedFromDate, formattedToDate);
+      // Was GET /api/v2/reports, a Laravel route this API never had — it
+      // answered 404 and the screen showed "Error fetching data" for every
+      // range. The orders endpoint already filters by date, so the report is
+      // built from the same rows the Orders screen shows.
+      final response = await OrderRepository().getMynOrders(
+        startDate: formattedFromDate,
+        endDate: formattedToDate,
+      );
+
+      if (response.orders.isEmpty) {
+        ToastComponent.showDialog(
+          "No orders between $formattedFromDate and $formattedToDate",
+          gravity: Toast.center,
+          duration: Toast.lengthLong,
+        );
+        return;
+      }
+
       await _createAndSaveExcelFile(
-          data.data, formattedFromDate, formattedToDate);
+          response.orders, formattedFromDate, formattedToDate);
       await _loadFiles(); // Reload the file list after creating a new file
     } catch (e) {
       ToastComponent.showDialog(
-        "Error fetching data: $e",
+        "Couldn't build the report: ${e.toString().replaceFirst('Exception: ', '')}",
         gravity: Toast.center,
         duration: Toast.lengthLong,
+        isError: true,
       );
+    } finally {
+      if (mounted) setState(() => _building = false);
     }
   }
 
   Future<void> _createAndSaveExcelFile(
-      List<Order> data, String fromDate, String toDate) async {
+      List<MynOrder> data, String fromDate, String toDate) async {
     var excel = Excel.createExcel();
     excel.rename('Sheet1', 'Report');
     Sheet sheetObject = excel['Report'];
 
-    if (data.isNotEmpty) {
-      sheetObject.appendRow([
-        TextCellValue('Date of Purchase'),
-        TextCellValue('Customer Name'),
-        TextCellValue('Order ID'),
-        TextCellValue('Mode of Payment'),
-        TextCellValue('Seller Price'),
-        TextCellValue('Tax Amount'),
-        TextCellValue('Total Amount')
-      ]);
+    sheetObject.appendRow([
+      TextCellValue('Date'),
+      TextCellValue('Order ID'),
+      TextCellValue('Customer'),
+      TextCellValue('Status'),
+      TextCellValue('Payment'),
+      TextCellValue('Customer Paid'),
+      TextCellValue('CGST'),
+      TextCellValue('SGST'),
+      TextCellValue('Commission'),
+      TextCellValue('Platform Fee'),
+      TextCellValue('Delivery Charge'),
+      TextCellValue('TDS'),
+      TextCellValue('Earnings'),
+    ]);
 
-      for (var item in data) {
-        sheetObject.appendRow([
-          TextCellValue(item.datePurchase),
-          TextCellValue(item.customerName),
-          TextCellValue(item.orderCode),
-          TextCellValue(item.modePayment),
-          DoubleCellValue(item.sellerPrice),
-          DoubleCellValue(item.taxAmount),
-          DoubleCellValue(item.totalPrice)
-        ]);
-      }
+    for (var order in data) {
+      sheetObject.appendRow([
+        TextCellValue(order.createdAt == null
+            ? ''
+            : _dateFormat.format(order.createdAt!)),
+        TextCellValue(order.orderId),
+        TextCellValue(order.customerName),
+        TextCellValue(order.status),
+        TextCellValue(order.payment),
+        DoubleCellValue(order.customerPaid),
+        DoubleCellValue(order.cgst),
+        DoubleCellValue(order.sgst),
+        DoubleCellValue(order.commission),
+        DoubleCellValue(order.platformFee),
+        DoubleCellValue(order.dc),
+        DoubleCellValue(order.tds),
+        DoubleCellValue(order.earnings),
+      ]);
     }
+
+    // A totals row, because the reason to pull a date range is usually to add
+    // it up.
+    double sum(double Function(MynOrder) pick) =>
+        data.fold(0.0, (t, o) => t + pick(o));
+
+    sheetObject.appendRow([
+      TextCellValue('TOTAL'),
+      TextCellValue('${data.length} order${data.length == 1 ? '' : 's'}'),
+      TextCellValue(''),
+      TextCellValue(''),
+      TextCellValue(''),
+      DoubleCellValue(sum((o) => o.customerPaid)),
+      DoubleCellValue(sum((o) => o.cgst)),
+      DoubleCellValue(sum((o) => o.sgst)),
+      DoubleCellValue(sum((o) => o.commission)),
+      DoubleCellValue(sum((o) => o.platformFee)),
+      DoubleCellValue(sum((o) => o.dc)),
+      DoubleCellValue(sum((o) => o.tds)),
+      DoubleCellValue(sum((o) => o.earnings)),
+    ]);
 
     var fileBytes = excel.save();
     Directory appDocDir = await getApplicationDocumentsDirectory();
@@ -138,7 +193,7 @@ class _DownloadReportScreenState extends State<DownloadReportScreen> {
       log(filePath);
       await file.writeAsBytes(fileBytes!);
       ToastComponent.showDialog(
-        "Successfully Generated",
+        "Report ready - ${data.length} order${data.length == 1 ? '' : 's'}",
         gravity: Toast.center,
         duration: Toast.lengthLong,
       );
@@ -282,13 +337,21 @@ class _DownloadReportScreenState extends State<DownloadReportScreen> {
                   SizedBox(height: 16),
                   Center(
                     child: ElevatedButton(
-                      onPressed: _submit,
+                      onPressed: _building ? null : _submit,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.download, color: Colors.white),
+                          if (_building)
+                            const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          else
+                            Icon(Icons.download, color: Colors.white),
                           SizedBox(width: 8),
-                          Text('Download Report',
+                          Text(_building ? "Building..." : "Download Report",
                               style: TextStyle(color: Colors.white)),
                         ],
                       ),
