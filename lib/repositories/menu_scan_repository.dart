@@ -236,12 +236,29 @@ class MenuScanRepository {
   }
 
   String _messageFrom(String body, int status) {
+    String? serverMessage;
     try {
       final decoded = jsonDecode(body);
       if (decoded is Map && decoded["message"] != null) {
-        return decoded["message"].toString();
+        serverMessage = decoded["message"].toString();
       }
     } catch (_) {}
-    return "Request failed ($status)";
+
+    // A message that names a server-side setup problem (a missing API key,
+    // an unconfigured integration) is meaningless to a seller and just adds
+    // alarm — show something they can act on instead.
+    if (serverMessage != null && _looksLikeServerMisconfiguration(serverMessage)) {
+      return "Menu scanning isn't available right now. Please try again in "
+          "a while, or contact support if this keeps happening.";
+    }
+
+    return serverMessage ?? "Request failed ($status)";
+  }
+
+  bool _looksLikeServerMisconfiguration(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains("api_key") ||
+        lower.contains("api key") ||
+        lower.contains("not configured");
   }
 }
