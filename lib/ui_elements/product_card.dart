@@ -176,8 +176,8 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                     ),
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: 5,
+                    right: 5,
                     child: MyCustomBadge(widget.is_active!),
                   ),
                   if (isImagePending)
@@ -200,10 +200,10 @@ class _ProductCardState extends State<ProductCard> {
                                 size: 12, color: const Color(0xFFD98E22)),
                             const SizedBox(width: 4),
                             Text(
-                              "Waiting approval",
+                              "Waiting",
                               style: TextStyle(
                                 color: const Color(0xFF8A5B0E),
-                                fontSize: 9.5,
+                                fontSize: 8,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -216,7 +216,7 @@ class _ProductCardState extends State<ProductCard> {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                padding: const EdgeInsets.fromLTRB(7, 6, 7, 5),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -227,9 +227,9 @@ class _ProductCardState extends State<ProductCard> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: MyTheme.font_grey,
-                        fontSize: 12.5,
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        height: 1.2,
+                        height: 1.15,
                       ),
                     ),
                     Row(
@@ -244,7 +244,7 @@ class _ProductCardState extends State<ProductCard> {
                                   widget.stroked_price ?? "",
                                   style: TextStyle(
                                     color: MyTheme.medium_grey,
-                                    fontSize: 10.5,
+                                    fontSize: 9,
                                     decoration: TextDecoration.lineThrough,
                                   ),
                                 ),
@@ -252,7 +252,7 @@ class _ProductCardState extends State<ProductCard> {
                                 widget.seller_price ?? "",
                                 style: TextStyle(
                                   color: MyTheme.accent_color,
-                                  fontSize: 15,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -275,7 +275,7 @@ class _ProductCardState extends State<ProductCard> {
 MyCustomBadge(bool is_active) {
   return is_active
       ? Container(
-          padding: EdgeInsets.all(4),
+          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 3),
           decoration: BoxDecoration(
             color: Colors.green,
             borderRadius: BorderRadius.circular(8),
@@ -284,13 +284,13 @@ MyCustomBadge(bool is_active) {
             'Active',
             style: TextStyle(
               color: Color.fromARGB(255, 232, 252, 232),
-              fontSize: 13,
+              fontSize: 9.5,
               fontWeight: FontWeight.bold,
             ),
           ),
         )
       : Container(
-          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 3),
           decoration: BoxDecoration(
             color: Colors.red,
             borderRadius: BorderRadius.circular(8),
@@ -299,7 +299,7 @@ MyCustomBadge(bool is_active) {
             'Inactive',
             style: TextStyle(
               color: Color.fromARGB(255, 248, 218, 218),
-              fontSize: 13,
+              fontSize: 9.5,
               fontWeight: FontWeight.bold,
             ),
           ),
