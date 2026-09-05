@@ -11,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myn_seller_app/app_config.dart';
 import 'package:myn_seller_app/app_localizations.dart';
 import 'package:myn_seller_app/firebase_options.dart';
+import 'package:myn_seller_app/helpers/session_manager.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/repositories/auth_repository.dart';
@@ -88,9 +89,14 @@ main() async {
   seller_business_category.load();
 
   print('is login ${is_logged_in.$}');
-  access_token.load().whenComplete(() {
-    fetch_user();
-  });
+  // Renew the session before anything asks the API for something. The access
+  // token expires in a couple of hours, so an app reopened the next morning
+  // used to load every screen with an expired token and show errors on all of
+  // them.
+  await access_token.load();
+  await refresh_token.load();
+  await SessionManager.ensureFresh();
+  fetch_user();
   //set dummy login data -- end
 
   // Draw under the status and navigation bars. Without this the gesture bar

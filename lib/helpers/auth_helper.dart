@@ -8,6 +8,7 @@ class AuthHelper {
     if (loginResponse.result == true) {
       is_logged_in.$ = true;
       access_token.$ = loginResponse.access_token;
+      refresh_token.$ = loginResponse.refresh_token ?? "";
       // The Node/Mongo API has no int id; keep 0 so legacy `user_id.$ == 0`
       // guards stay meaningful instead of tripping over null.
       user_id.$ = loginResponse.user.id ?? 0;
@@ -25,6 +26,7 @@ class AuthHelper {
   clearUserData() {
     is_logged_in.$ = false;
     access_token.$ = "";
+    refresh_token.$ = "";
     user_id.$ = 0;
     seller_mongo_id.$ = "";
     seller_uid.$ = "";

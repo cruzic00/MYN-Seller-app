@@ -14,6 +14,7 @@ class LoginResponse {
     this.result,
     this.message,
     this.access_token,
+    this.refresh_token,
     this.token_type,
     this.expires_at,
     this.user,
@@ -22,6 +23,10 @@ class LoginResponse {
   bool? result;
   String? message;
   String? access_token;
+
+  /// Long-lived token the app trades for a new access_token when the short one
+  /// expires, so a seller is not signed out a couple of hours after logging in.
+  String? refresh_token;
   String? token_type;
   DateTime? expires_at;
   User? user;
@@ -37,6 +42,7 @@ class LoginResponse {
         result: json["success"] == true,
         message: json["message"],
         access_token: data["token"],
+        refresh_token: data["refreshToken"],
         token_type: "Bearer",
         // The Node API signs JWTs with expiresIn: '24h' and does not return an
         // explicit expiry, so derive it rather than leaving it null.

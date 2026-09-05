@@ -6,6 +6,7 @@ import 'package:myn_seller_app/data_model/myn_order_response.dart';
 import 'package:myn_seller_app/data_model/myn_profile_response.dart';
 import 'package:myn_seller_app/helpers/order_events.dart';
 import 'package:myn_seller_app/helpers/root_scaffold.dart';
+import 'package:myn_seller_app/helpers/session_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/repositories/myn_profile_repository.dart';
@@ -76,7 +77,31 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       // Orders that arrived while the app was backgrounded were drawn by
       // Android itself, so onMessage never fired for them — reload on the way
       // back in rather than trusting the list on screen.
-      _refreshQuietly();
+      //
+      // The session is renewed first: an app left in the background overnight
+      // comes back with an expired token, and reloading with it would paint
+      // every card as an error instead of the orders that are actually there.
+      SessionManager.ensureFresh().then((_) {
+        if (!mounted) return;
+
+        // The server can refuse the refresh outright — the session was revoked,
+        // or the seller has been away longer than the refresh token lives. Say
+        // so and send them to the login screen, rather than leaving a dashboard
+        // that quietly fails every request.
+        if (SessionManager.isSignedOut) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Session expired. Please sign in.")),
+          );
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => Login()),
+            (route) => false,
+          );
+          return;
+        }
+
+        _refreshQuietly();
+      });
       _startPolling();
     } else {
       _poll?.cancel();

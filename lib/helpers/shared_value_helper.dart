@@ -14,6 +14,14 @@ final SharedValue<String?> access_token = SharedValue(
   key: "access_token", // disk storage key for shared_preferences
   autosave: true, // autosave to shared prefs when value changes
 );
+
+/// Traded for a new access_token when that one expires. See SessionManager:
+/// without it the seller was signed out a couple of hours after logging in.
+final SharedValue<String?> refresh_token = SharedValue(
+  value: "", // initial value
+  key: "refresh_token", // disk storage key for shared_preferences
+  autosave: true, // autosave to shared prefs when value changes
+);
 final SharedValue<String> app_language = SharedValue(
   value: "en", // initial value
   key: "app_language", // disk storage key for shared_preferences
