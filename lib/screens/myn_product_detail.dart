@@ -1150,7 +1150,11 @@ class _MynProductDetailState extends State<MynProductDetail> {
       );
 
   Widget _buildImagePicker() {
-    final existing = _product?.imageUrl ?? "";
+    // A scanned match brings the catalogue picture with it, so a new item can
+    // have one before it has been saved.
+    final existing = _product?.imageUrl.isNotEmpty == true
+        ? _product!.imageUrl
+        : (_scannedImageUrl ?? "");
 
     return GestureDetector(
       onTap: _loading ? null : _pickImage,
