@@ -14,11 +14,17 @@ import 'package:myn_seller_app/repositories/product_repository.dart';
 class ShopCategory {
   final String id;
   final String name;
+
+  /// Shelf picture. The endpoint falls back to the master category's image when
+  /// the shop has not set one, and to "" when neither has — the Products screen
+  /// draws its icon in that case rather than a broken tile.
+  final String imageUrl;
   final List<ShopSubcategory> subcategories;
 
   ShopCategory({
     required this.id,
     required this.name,
+    required this.imageUrl,
     required this.subcategories,
   });
 
@@ -28,6 +34,7 @@ class ShopCategory {
       // `id` is the shop-local id; `_id` is Mongo's. Either identifies it.
       id: (json["id"] ?? json["_id"] ?? "").toString(),
       name: json["name"]?.toString() ?? "",
+      imageUrl: json["imageUrl"]?.toString() ?? "",
       subcategories: raw
           .whereType<Map<String, dynamic>>()
           .map(ShopSubcategory.fromJson)

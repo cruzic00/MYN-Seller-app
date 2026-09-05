@@ -32,11 +32,20 @@ class MynProductDetail extends StatefulWidget {
   final String? productId;
   final String? fallbackName;
 
-  const MynProductDetail({Key? key, required this.productId, this.fallbackName})
-      : super(key: key);
+  /// A code the Products screen already scanned, looked up as this form opens.
+  final String? scannedBarcode;
+
+  const MynProductDetail(
+      {Key? key, required this.productId, this.fallbackName})
+      : scannedBarcode = null,
+        super(key: key);
 
   /// Blank form for adding a product.
-  const MynProductDetail.create({Key? key})
+  ///
+  /// [scannedBarcode] comes from the Products screen's scan button: the code is
+  /// already read, so the form looks it up as it opens rather than making the
+  /// seller scan the same pack twice.
+  const MynProductDetail.create({Key? key, this.scannedBarcode})
       : productId = null,
         fallbackName = null,
         super(key: key);
@@ -208,6 +217,10 @@ class _MynProductDetailState extends State<MynProductDetail> {
         if (_portions.isEmpty) _portions.add(_PortionRow(unit: "Regular"));
       });
       _loadCategories();
+
+      // Arrives from the Products screen with a code already in hand.
+      final scanned = widget.scannedBarcode;
+      if (scanned != null && scanned.isNotEmpty) _applyScan(scanned);
       return;
     }
 
@@ -534,7 +547,15 @@ class _MynProductDetailState extends State<MynProductDetail> {
       MaterialPageRoute(builder: (context) => const BarcodeScanScreen()),
     );
     if (code == null || code.isEmpty || !mounted) return;
+    await _applyScan(code);
+  }
 
+  /// Looks a code up and pours the answer into the form.
+  ///
+  /// Split out so one path serves both a scan started from this screen and one
+  /// started on the Products screen, which opens this form with a code already
+  /// in hand.
+  Future<void> _applyScan(String code) async {
     setState(() => _scanning = true);
     try {
       final match = await MynBarcodeRepository().lookup(code);
