@@ -237,11 +237,22 @@ class _MainDrawerState extends State<MainDrawer> {
     final String contact = _contact();
     final String logo = _logoUrl();
     final String banner = _bannerUrl();
+    final bool onPhoto = banner.isNotEmpty;
+
+    // Over a photo the text goes white; over the brand gradient it stays the
+    // dark brown that reads on yellow. One colour for both would be unreadable
+    // on one of them.
+    final Color ink = onPhoto ? Colors.white : MynPalette.onYellow;
+    final Color inkSoft = onPhoto
+        ? const Color.fromRGBO(255, 255, 255, 0.85)
+        : const Color.fromRGBO(74, 54, 0, 0.70);
+    final Color chip = onPhoto
+        ? const Color.fromRGBO(0, 0, 0, 0.32)
+        : const Color.fromRGBO(74, 54, 0, 0.12);
 
     final Widget monogram = Text(
       name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
-      style: const TextStyle(
-          color: MynPalette.onYellow, fontSize: 24, fontWeight: FontWeight.w700),
+      style: TextStyle(color: ink, fontSize: 24, fontWeight: FontWeight.w700),
     );
 
     return Container(
@@ -258,10 +269,10 @@ class _MainDrawerState extends State<MainDrawer> {
       ),
       child: Stack(
         children: [
-          // The shop's banner behind everything, with the brand gradient still
-          // painted underneath — a banner that fails to load, or a shop that has
-          // none, leaves the header exactly as it was rather than a grey hole.
-          if (banner.isNotEmpty)
+          // The banner at its own colours. The brand gradient stays underneath,
+          // so a shop with no banner — or one whose image fails — keeps the
+          // header it always had rather than showing a grey hole.
+          if (onPhoto)
             Positioned.fill(
               child: CachedNetworkImage(
                 imageUrl: banner,
@@ -270,19 +281,19 @@ class _MainDrawerState extends State<MainDrawer> {
                 errorWidget: (c, u, e) => const SizedBox.shrink(),
               ),
             ),
-          // A scrim over the banner. Without it the shop name — dark text chosen
-          // for the yellow gradient — lands on whatever colours the photo
-          // happens to have there and stops being readable.
-          if (banner.isNotEmpty)
+          // Darkened towards the bottom, where the name and email sit. Clear at
+          // the top so the picture is still the picture; the alternative is
+          // white text landing on whatever the photo happens to be there.
+          if (onPhoto)
             Positioned.fill(
               child: DecoratedBox(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      const Color.fromRGBO(255, 199, 44, 0.72),
-                      const Color.fromRGBO(240, 176, 20, 0.92),
+                      Color.fromRGBO(0, 0, 0, 0.20),
+                      Color.fromRGBO(0, 0, 0, 0.66),
                     ],
                   ),
                 ),
@@ -298,10 +309,12 @@ class _MainDrawerState extends State<MainDrawer> {
                   height: 58,
                   width: 58,
                   decoration: BoxDecoration(
-                    color: const Color.fromRGBO(74, 54, 0, 0.12),
+                    color: chip,
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: const Color.fromRGBO(74, 54, 0, 0.22),
+                        color: onPhoto
+                            ? const Color.fromRGBO(255, 255, 255, 0.85)
+                            : const Color.fromRGBO(74, 54, 0, 0.22),
                         width: 1.5),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -322,10 +335,8 @@ class _MainDrawerState extends State<MainDrawer> {
                   name.isEmpty ? "Not logged in" : name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: MynPalette.onYellow,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                      color: ink, fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 if (contact.isNotEmpty) ...[
                   const SizedBox(height: 3),
@@ -333,8 +344,7 @@ class _MainDrawerState extends State<MainDrawer> {
                     contact,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Color.fromRGBO(74, 54, 0, 0.70), fontSize: 13),
+                    style: TextStyle(color: inkSoft, fontSize: 13),
                   ),
                 ],
                 if ((seller_role.$ ?? "").trim().isNotEmpty) ...[
@@ -343,13 +353,13 @@ class _MainDrawerState extends State<MainDrawer> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color.fromRGBO(74, 54, 0, 0.12),
+                      color: chip,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       (seller_role.$ ?? "").toUpperCase(),
-                      style: const TextStyle(
-                          color: MynPalette.onYellow,
+                      style: TextStyle(
+                          color: ink,
                           fontSize: 10.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.4),
