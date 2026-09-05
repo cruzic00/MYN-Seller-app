@@ -87,6 +87,8 @@ main() async {
   seller_username.load();
   seller_role.load();
   seller_business_category.load();
+  seller_logo_url.load();
+  seller_banner_url.load();
 
   print('is login ${is_logged_in.$}');
   // Deliberately not awaited: SharedValue.load() calls setState, which throws

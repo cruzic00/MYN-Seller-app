@@ -124,8 +124,20 @@ class _MainDrawerState extends State<MainDrawer> {
     return (user_phone.$ ?? "").trim();
   }
 
-  String _avatarUrl() {
-    final String raw = (avatar_original.$ ?? "").trim();
+  /// The shop's logo, then the legacy avatar as a fallback.
+  ///
+  /// avatar_original is an Active-eCommerce field the MYN API never sets, so on
+  /// its own it always resolved to "" and every seller saw the monogram. The
+  /// real picture is the businessName's logoUrl, cached by the dashboard.
+  String _logoUrl() =>
+      _absolute(seller_logo_url.$).isNotEmpty
+          ? _absolute(seller_logo_url.$)
+          : _absolute(avatar_original.$);
+
+  String _bannerUrl() => _absolute(seller_banner_url.$);
+
+  String _absolute(String? value) {
+    final String raw = (value ?? "").trim();
     if (raw.isEmpty) return "";
     if (raw.startsWith("http")) return raw;
     if (raw.startsWith("/")) return "${AppConfig.RAW_BASE_URL}$raw";
@@ -223,94 +235,130 @@ class _MainDrawerState extends State<MainDrawer> {
   Widget buildHeader(BuildContext context) {
     final String name = _shopName();
     final String contact = _contact();
-    final String avatar = _avatarUrl();
+    final String logo = _logoUrl();
+    final String banner = _bannerUrl();
+
+    final Widget monogram = Text(
+      name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
+      style: const TextStyle(
+          color: MynPalette.onYellow, fontSize: 24, fontWeight: FontWeight.w700),
+    );
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-          20, MediaQuery.of(context).padding.top + 22, 20, 22),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [MynPalette.brandYellow, MynPalette.brandYellowDeep],
         ),
-        borderRadius: const BorderRadius.only(
-            bottomRight: Radius.circular(28)),
+        borderRadius:
+            const BorderRadius.only(bottomRight: Radius.circular(28)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Container(
-            height: 58,
-            width: 58,
-            decoration: BoxDecoration(
-              color: const Color.fromRGBO(74, 54, 0, 0.12),
-              shape: BoxShape.circle,
-              border: Border.all(
-                  color: const Color.fromRGBO(74, 54, 0, 0.22), width: 1.5),
+          // The shop's banner behind everything, with the brand gradient still
+          // painted underneath — a banner that fails to load, or a shop that has
+          // none, leaves the header exactly as it was rather than a grey hole.
+          if (banner.isNotEmpty)
+            Positioned.fill(
+              child: CachedNetworkImage(
+                imageUrl: banner,
+                fit: BoxFit.cover,
+                placeholder: (c, u) => const SizedBox.shrink(),
+                errorWidget: (c, u, e) => const SizedBox.shrink(),
+              ),
             ),
-            clipBehavior: Clip.antiAlias,
-            alignment: Alignment.center,
-            child: avatar.isEmpty
-                ? Text(
-                    name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
+          // A scrim over the banner. Without it the shop name — dark text chosen
+          // for the yellow gradient — lands on whatever colours the photo
+          // happens to have there and stops being readable.
+          if (banner.isNotEmpty)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color.fromRGBO(255, 199, 44, 0.72),
+                      const Color.fromRGBO(240, 176, 20, 0.92),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                20, MediaQuery.of(context).padding.top + 22, 20, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 58,
+                  width: 58,
+                  decoration: BoxDecoration(
+                    color: const Color.fromRGBO(74, 54, 0, 0.12),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: const Color.fromRGBO(74, 54, 0, 0.22),
+                        width: 1.5),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  alignment: Alignment.center,
+                  child: logo.isEmpty
+                      ? monogram
+                      : CachedNetworkImage(
+                          imageUrl: logo,
+                          fit: BoxFit.cover,
+                          width: 58,
+                          height: 58,
+                          placeholder: (c, u) => monogram,
+                          errorWidget: (c, u, e) => monogram,
+                        ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  name.isEmpty ? "Not logged in" : name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: MynPalette.onYellow,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700),
+                ),
+                if (contact.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    contact,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        color: MynPalette.onYellow,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700),
-                  )
-                : CachedNetworkImage(
-                    imageUrl: avatar,
-                    fit: BoxFit.cover,
-                    width: 58,
-                    height: 58,
-                    errorWidget: (c, u, e) => Text(
-                      name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
+                        color: Color.fromRGBO(74, 54, 0, 0.70), fontSize: 13),
+                  ),
+                ],
+                if ((seller_role.$ ?? "").trim().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color.fromRGBO(74, 54, 0, 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      (seller_role.$ ?? "").toUpperCase(),
                       style: const TextStyle(
                           color: MynPalette.onYellow,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4),
                     ),
                   ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            name.isEmpty ? "Not logged in" : name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-                color: MynPalette.onYellow, fontSize: 18, fontWeight: FontWeight.w700),
-          ),
-          if (contact.isNotEmpty) ...[
-            const SizedBox(height: 3),
-            Text(
-              contact,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Color.fromRGBO(74, 54, 0, 0.70), fontSize: 13),
+                ],
+              ],
             ),
-          ],
-          if ((seller_role.$ ?? "").trim().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color.fromRGBO(74, 54, 0, 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                (seller_role.$ ?? "").toUpperCase(),
-                style: const TextStyle(
-                    color: MynPalette.onYellow,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4),
-              ),
-            ),
-          ],
+          ),
         ],
       ),
     );

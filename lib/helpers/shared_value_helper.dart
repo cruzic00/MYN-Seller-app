@@ -139,3 +139,21 @@ bool isFoodBusiness() {
   final category = (seller_business_category.$ ?? "").toLowerCase();
   return foodKeywords.any(category.contains);
 }
+
+/// Shop logo and banner, cached from GET /api/auth/me.
+///
+/// The side panel is built before any screen fetches a profile, so it read
+/// avatar_original — a legacy Laravel field the MYN API never fills — and every
+/// seller got the initial-letter monogram. These are set when the dashboard
+/// loads the profile and persist, so the panel is right from the next launch on.
+final SharedValue<String?> seller_logo_url = SharedValue(
+  value: "",
+  key: "seller_logo_url", // disk storage key for shared_preferences
+  autosave: true, // autosave to shared prefs when value changes
+);
+
+final SharedValue<String?> seller_banner_url = SharedValue(
+  value: "",
+  key: "seller_banner_url", // disk storage key for shared_preferences
+  autosave: true, // autosave to shared prefs when value changes
+);

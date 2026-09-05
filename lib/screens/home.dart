@@ -131,6 +131,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         // Cached so the product form knows which fields to show without
         // waiting on its own profile call.
         seller_business_category.$ = p.businessCategory;
+        seller_logo_url.$ = p.logoUrl;
+        seller_banner_url.$ = p.bannerUrl;
       });
     } catch (e) {
       print("Profile fetch failed: $e");
