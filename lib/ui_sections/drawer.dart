@@ -239,24 +239,28 @@ class _MainDrawerState extends State<MainDrawer> {
     final String banner = _bannerUrl();
     final bool onPhoto = banner.isNotEmpty;
 
-    // Over a photo the text goes white; over the brand gradient it stays the
-    // dark brown that reads on yellow. One colour for both would be unreadable
-    // on one of them.
+    // Over a photo the text goes white on a black fade; over the brand gradient
+    // it stays the dark brown that reads on yellow.
     final Color ink = onPhoto ? Colors.white : MynPalette.onYellow;
     final Color inkSoft = onPhoto
-        ? const Color.fromRGBO(255, 255, 255, 0.85)
+        ? const Color.fromRGBO(255, 255, 255, 0.88)
         : const Color.fromRGBO(74, 54, 0, 0.70);
     final Color chip = onPhoto
-        ? const Color.fromRGBO(0, 0, 0, 0.32)
+        ? const Color.fromRGBO(255, 255, 255, 0.22)
         : const Color.fromRGBO(74, 54, 0, 0.12);
 
     final Widget monogram = Text(
       name.isEmpty ? "?" : name.trim()[0].toUpperCase(),
-      style: TextStyle(color: ink, fontSize: 24, fontWeight: FontWeight.w700),
+      style: TextStyle(color: ink, fontSize: 22, fontWeight: FontWeight.w700),
     );
+
+    final double topInset = MediaQuery.of(context).padding.top;
 
     return Container(
       width: double.infinity,
+      // Tall enough for the picture to be worth showing. Without a banner it
+      // collapses to what the text needs, so the old header keeps its size.
+      height: onPhoto ? topInset + 218 : null,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -268,10 +272,8 @@ class _MainDrawerState extends State<MainDrawer> {
             const BorderRadius.only(bottomRight: Radius.circular(28)),
       ),
       child: Stack(
+        fit: StackFit.passthrough,
         children: [
-          // The banner at its own colours. The brand gradient stays underneath,
-          // so a shop with no banner — or one whose image fails — keeps the
-          // header it always had rather than showing a grey hole.
           if (onPhoto)
             Positioned.fill(
               child: CachedNetworkImage(
@@ -281,9 +283,10 @@ class _MainDrawerState extends State<MainDrawer> {
                 errorWidget: (c, u, e) => const SizedBox.shrink(),
               ),
             ),
-          // Darkened towards the bottom, where the name and email sit. Clear at
-          // the top so the picture is still the picture; the alternative is
-          // white text landing on whatever the photo happens to be there.
+          // Black only where the text sits. The top two-fifths stay clear so the
+          // banner is still a picture; below that it goes to near-solid, which
+          // is what makes white text readable over a bright shopfront rather
+          // than merely lighter than it.
           if (onPhoto)
             Positioned.fill(
               child: DecoratedBox(
@@ -291,29 +294,34 @@ class _MainDrawerState extends State<MainDrawer> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
+                    stops: [0.0, 0.40, 1.0],
                     colors: [
-                      Color.fromRGBO(0, 0, 0, 0.20),
-                      Color.fromRGBO(0, 0, 0, 0.66),
+                      Color.fromRGBO(0, 0, 0, 0.0),
+                      Color.fromRGBO(0, 0, 0, 0.45),
+                      Color.fromRGBO(0, 0, 0, 0.88),
                     ],
                   ),
                 ),
               ),
             ),
           Padding(
-            padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.of(context).padding.top + 22, 20, 22),
+            padding: EdgeInsets.fromLTRB(20, topInset + 22, 20, 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              // Pinned to the bottom of the header so the name and email land
+              // in the dark part of the fade, not halfway up the shopfront.
+              mainAxisAlignment:
+                  onPhoto ? MainAxisAlignment.end : MainAxisAlignment.start,
               children: [
                 Container(
-                  height: 58,
-                  width: 58,
+                  height: 52,
+                  width: 52,
                   decoration: BoxDecoration(
                     color: chip,
                     shape: BoxShape.circle,
                     border: Border.all(
                         color: onPhoto
-                            ? const Color.fromRGBO(255, 255, 255, 0.85)
+                            ? const Color.fromRGBO(255, 255, 255, 0.90)
                             : const Color.fromRGBO(74, 54, 0, 0.22),
                         width: 1.5),
                   ),
@@ -324,13 +332,13 @@ class _MainDrawerState extends State<MainDrawer> {
                       : CachedNetworkImage(
                           imageUrl: logo,
                           fit: BoxFit.cover,
-                          width: 58,
-                          height: 58,
+                          width: 52,
+                          height: 52,
                           placeholder: (c, u) => monogram,
                           errorWidget: (c, u, e) => monogram,
                         ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 Text(
                   name.isEmpty ? "Not logged in" : name,
                   maxLines: 2,
@@ -339,19 +347,19 @@ class _MainDrawerState extends State<MainDrawer> {
                       color: ink, fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 if (contact.isNotEmpty) ...[
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   Text(
                     contact,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: inkSoft, fontSize: 13),
+                    style: TextStyle(color: inkSoft, fontSize: 12.5),
                   ),
                 ],
                 if ((seller_role.$ ?? "").trim().isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: chip,
                       borderRadius: BorderRadius.circular(20),
@@ -360,7 +368,7 @@ class _MainDrawerState extends State<MainDrawer> {
                       (seller_role.$ ?? "").toUpperCase(),
                       style: TextStyle(
                           color: ink,
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.4),
                     ),
