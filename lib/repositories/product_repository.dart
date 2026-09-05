@@ -137,20 +137,23 @@ class ProductRepository {
     }
     return "";
   }
-
   Future<ProductMiniResponse> getCategoryProducts(
-      {int page = 1, String? name}) async {
+      {int page = 1, String? name, String? category}) async {
     // GET /api/business/business-stocklist/:uid — returns the seller's full
-    // stocklist in one response (no server-side paging), optionally filtered
-    // by ?search=.
-    String url =
-        "${AppConfig.MYN_BASE_URL}/business/business-stocklist/${Uri.encodeComponent(sellerIdentifier())}";
-
+    // stocklist in one response (no server-side paging), optionally filtered by
+    // ?search= or ?category=. The server ignores category while a search is
+    // running (search hits a text index and skips the fast filters), so the two
+    // are sent as alternatives rather than together.
+    final params = <String, String>{};
     if (name != null && name.isNotEmpty) {
-      url += "?search=${Uri.encodeComponent(name)}";
+      params["search"] = name;
+    } else if (category != null && category.isNotEmpty) {
+      params["category"] = category;
     }
 
-    Uri uri = Uri.parse(url);
+    Uri uri = Uri.parse(
+            "${AppConfig.MYN_BASE_URL}/business/business-stocklist/${Uri.encodeComponent(sellerIdentifier())}")
+        .replace(queryParameters: params.isEmpty ? null : params);
 
     try {
       final response = await http.get(uri, headers: {
