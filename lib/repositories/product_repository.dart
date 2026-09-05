@@ -137,6 +137,7 @@ class ProductRepository {
     }
     return "";
   }
+
   Future<ProductMiniResponse> getCategoryProducts(
       {int page = 1, String? name, String? category}) async {
     // GET /api/business/business-stocklist/:uid — returns the seller's full
