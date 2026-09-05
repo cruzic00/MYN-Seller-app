@@ -151,6 +151,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   /// and returns pre-computed `totals`.
   Future<void> fetchSummary() async {
     try {
+      // Renew first when the token is spent. This is the dashboard's only
+      // network call on a cold start, so without it an app opened after a long
+      // gap fetched with a dead token and showed the failure card instead of
+      // the orders that were waiting.
+      await SessionManager.ensureFresh();
       final res = await OrderRepository().getMynOrders();
       if (!mounted) return;
       setState(() {
