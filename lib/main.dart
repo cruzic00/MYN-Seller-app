@@ -89,14 +89,18 @@ main() async {
   seller_business_category.load();
 
   print('is login ${is_logged_in.$}');
-  // Renew the session before anything asks the API for something. The access
-  // token expires in a couple of hours, so an app reopened the next morning
-  // used to load every screen with an expired token and show errors on all of
-  // them.
-  await access_token.load();
-  await refresh_token.load();
-  await SessionManager.ensureFresh();
-  fetch_user();
+  // Deliberately not awaited: SharedValue.load() calls setState, which throws
+  // "SharedValue was not initalized" until wrapApp has run — so nothing here may
+  // block runApp below. The session is renewed inside the callback instead,
+  // which lands after the first frame.
+  access_token.load().whenComplete(() async {
+    await refresh_token.load();
+    // The access token expires in a couple of hours. Without this an app
+    // reopened the next morning ran every request with a dead token and painted
+    // errors on every card.
+    await SessionManager.ensureFresh();
+    fetch_user();
+  });
   //set dummy login data -- end
 
   // Draw under the status and navigation bars. Without this the gesture bar
