@@ -10,6 +10,8 @@ import 'package:myn_seller_app/helpers/shared_value_helper.dart';
 import 'package:myn_seller_app/my_theme.dart';
 import 'package:myn_seller_app/myn_palette.dart';
 import 'package:myn_seller_app/repositories/business_category_repository.dart';
+import 'package:myn_seller_app/repositories/myn_barcode_repository.dart';
+import 'package:myn_seller_app/screens/barcode_scan.dart';
 import 'package:myn_seller_app/repositories/myn_product_repository.dart';
 import 'package:myn_seller_app/ui_elements/skeleton.dart';
 
@@ -143,6 +145,14 @@ class _MynProductDetailState extends State<MynProductDetail> {
   final TextEditingController _subCategory = TextEditingController();
 
   final List<_AddonGroup> _addonGroups = [];
+
+  // Barcode scanning. _barcode is saved with the item so the next seller who
+  // scans the same pack gets a match; _scannedImageUrl is the catalogue picture,
+  // already approved, sent through as a plain URL rather than a new upload.
+  String _barcode = "";
+  String? _masterProductId;
+  String? _scannedImageUrl;
+  bool _scanning = false;
   final List<_PortionRow> _portions = [];
 
   String _status = "Active";
@@ -387,7 +397,14 @@ class _MynProductDetailState extends State<MynProductDetail> {
         "imageUrl": _newImageDataUrl,
         // Same review queue as any seller-uploaded photo.
         "imageStatus": "Pending",
+      } else if (_scannedImageUrl != null) ...{
+        // Came from the catalogue, where an admin already cleared it, so it
+        // goes straight in rather than back through the review queue.
+        "imageUrl": _scannedImageUrl,
+        "imageStatus": "Approved",
       },
+      if (_barcode.isNotEmpty) "barcode": _barcode,
+      if (_masterProductId != null) "masterProductId": _masterProductId,
     };
 
     try {
@@ -506,6 +523,101 @@ class _MynProductDetailState extends State<MynProductDetail> {
     );
   }
 
+  /// Scans a pack and fills in whatever MYN already knows about it.
+  ///
+  /// The barcode carries only a number, so everything on screen after this
+  /// comes from MYN's catalogue. Price is never filled in — MRP moves, and what
+  /// this shop charges is the seller's own call.
+  Future<void> _scanBarcode() async {
+    final code = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const BarcodeScanScreen()),
+    );
+    if (code == null || code.isEmpty || !mounted) return;
+
+    setState(() => _scanning = true);
+    try {
+      final match = await MynBarcodeRepository().lookup(code);
+      if (!mounted) return;
+
+      setState(() {
+        _barcode = match.barcode;
+        _scanning = false;
+
+        if (!match.found) return;
+
+        _masterProductId = match.masterProductId;
+        if (match.name.isNotEmpty) _name.text = match.name;
+        if (match.brand.isNotEmpty) _brand.text = match.brand;
+        if (match.description.isNotEmpty) _description.text = match.description;
+        if (match.subCategory.isNotEmpty) _subCategory.text = match.subCategory;
+
+        // Only offer a category this shop actually has a section for; the
+        // catalogue's own name may mean nothing on this storefront.
+        if (match.category.isNotEmpty &&
+            (_categories.isEmpty ||
+                _categories.any((c) => c.name == match.category))) {
+          _category = match.category;
+          _categoryText.text = match.category;
+        }
+
+        if (match.unit.isNotEmpty && _portions.isNotEmpty) {
+          _portions.first.unit.text = match.unit;
+        }
+
+        // The catalogue picture is already approved, so it needs no review —
+        // _newImageDataUrl stays null and the existing URL is sent as-is.
+        if (match.imageUrl.isNotEmpty) _scannedImageUrl = match.imageUrl;
+      });
+
+      _toast(match.found
+          ? "Found: ${match.name}. Add your price."
+          : "New product. Fill it in and it will be saved against this barcode.");
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _barcode = code;
+        _scanning = false;
+      });
+      _toast(e.toString().replaceFirst("Exception: ", ""));
+    }
+  }
+
+  /// The scan button, shown only when adding: an item already in the stocklist
+  /// has nothing to prefill.
+  Widget _buildScanButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _scanning ? null : _scanBarcode,
+        icon: _scanning
+            ? const SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(strokeWidth: 2))
+            : Icon(Icons.qr_code_scanner_rounded,
+                size: 20, color: MyTheme.accent_color),
+        label: Text(
+          _scanning
+              ? "Checking..."
+              : _barcode.isEmpty
+                  ? "Scan barcode"
+                  : "Scanned $_barcode - tap to rescan",
+          style: TextStyle(
+              color: MyTheme.accent_color,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700),
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          side: BorderSide(color: MyTheme.accent_color),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
   /// A restaurant edits dishes; a hypermarket edits stock lines. The two ask for
   /// genuinely different things — portions and addons versus supplier price and
   /// GST — and the server already files them in different collections, so the
@@ -516,6 +628,10 @@ class _MynProductDetailState extends State<MynProductDetail> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
+        if (_isNew) ...[
+          _buildScanButton(),
+          const SizedBox(height: 18),
+        ],
         _section("Food image"),
         _buildImagePicker(),
         const SizedBox(height: 18),
@@ -552,6 +668,10 @@ class _MynProductDetailState extends State<MynProductDetail> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
+        if (_isNew) ...[
+          _buildScanButton(),
+          const SizedBox(height: 18),
+        ],
         _section("Product image"),
         _buildImagePicker(),
         const SizedBox(height: 18),
